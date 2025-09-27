@@ -1,0 +1,37 @@
+# Node / general
+node_modules/
+dist/
+build/
+*.log
+
+# Env / credenciales
+.env
+.env.*.local
+*.env
+
+# Vite / React (cuando agregues AppWeb)
+.vite/
+.cache/
+
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+
+# Misc
+.DS_Store
+
+# SO / editor
+Thumbs.db
+.idea/
+*.swp
+
+# Tests / coverage (si luego agregan)
+coverage/
+
+# Locks alternativos (si se usa yarn/pnpm en el futuro)
+yarn.lock
+pnpm-lock.yaml
+
+# Build de front
+AppWeb/dist/
