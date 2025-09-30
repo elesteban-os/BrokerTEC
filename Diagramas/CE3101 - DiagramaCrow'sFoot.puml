@@ -1,0 +1,117 @@
+@startuml
+
+' hide the spot
+hide circle
+
+' avoid problems with angled crows feet
+skinparam linetype ortho
+
+Entity USER {
+    * Id <<Pk>>
+    --
+    * Alias <<UNIQUE>>
+    * Email <<UNIQUE>>
+    * **Role_id <<PK>>**
+    Name
+    Password
+    Address
+    Country_of_origin
+    Phone
+    Status
+    Last_access
+    Deactivation_reason
+}
+
+Entity ROLE {
+    * Id <<Pk>>
+    --
+    Type
+}
+
+Entity MARKET {
+    * Id <<Pk>>
+    --
+    Name
+    Status
+    Concurrency
+}
+
+Entity COMPANY {
+    * Id <<Pk>>
+    --
+    * **Market_id <<FK>>**
+    Name
+    Total_shares_count
+    Available_shares
+    Current_market_cap
+    Status
+    Delisting_reason
+}
+
+Entity PRICE_HISTORY {
+    * Id <<Pk>>
+    --
+    * **Company_id <<FK>>**
+    Price
+    Timestamp
+}
+
+Entity TRADER_PORTFOLIO {
+    * Id <<Pk>>
+    --
+    * **User_id <<FK>>**
+    * **Company_id <<FK>>**
+    Share_count
+    Average_cost
+}
+
+Entity TRANSACTION {
+    * Id <<Pk>>
+    --
+    * **User_id <<FK>>**
+    * **Company_id <<FK>>**
+    Type
+    Quantity
+    Price
+    Timestamp
+}
+
+Entity WALLET {
+    * Id <<PK>>
+    --
+    * **User_id <<FK>>**
+    Balance
+    Category
+    Daily_limit
+    Daily_consumption
+}
+
+Entity TOP_UP {
+    * Id <<Pk>>
+    --
+    * **Wallet_id <<FK>>**
+    Amount
+    Timestamp
+}
+
+Entity AUDIT {
+    * Id <<Pk>>
+    --
+    * **User_id <<FK>>**
+    Event_type
+    Reason
+    Timestamp
+}
+
+USER    }|--|| ROLE
+USER    ||--o| WALLET
+USER    ||--o{ TRADER_PORTFOLIO
+USER    ||--o{ TRANSACTION
+USER    ||--o{ AUDIT
+MARKET  ||--o{ COMPANY
+COMPANY ||--o{ PRICE_HISTORY
+COMPANY ||--o{ TRANSACTION
+COMPANY ||--o{ TRADER_PORTFOLIO
+WALLET  ||--o{ TOP_UP
+
+@enduml
