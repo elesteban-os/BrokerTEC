@@ -4,10 +4,6 @@ dist/
 build/
 *.log
 
-# Env / credenciales
-.env
-.env.*.local
-*.env
 
 # Vite / React (cuando agregues AppWeb)
 .vite/
