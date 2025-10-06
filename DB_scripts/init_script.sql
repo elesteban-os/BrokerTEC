@@ -25,7 +25,7 @@ GO
 -- 1. Tabla: [ROLE]
 CREATE TABLE [ROLE] (
     Id INT IDENTITY(101,1) PRIMARY KEY,
-    Role_type NVARCHAR(100) NOT NULL UNIQUE
+    Role_type NVARCHAR(15) NOT NULL UNIQUE
 );
 GO
 PRINT 'Tabla [ROLE] creada exitosamente.';
@@ -35,16 +35,16 @@ GO
 CREATE TABLE [USER] (
     Id INT IDENTITY(1001,1) PRIMARY KEY,
     Alias NVARCHAR(15) NOT NULL UNIQUE,
-    Email NVARCHAR(255) NOT NULL UNIQUE,
-    Password_hash NVARCHAR(255) NOT NULL,
+    Email NVARCHAR(35) NOT NULL UNIQUE,
+    Password_hash NVARCHAR(64) NOT NULL,
     Role_Id INT NOT NULL,
-    Username NVARCHAR(255) NOT NULL,
-    Address_dir NVARCHAR(255),
-    Country_of_origin NVARCHAR(100),
+    Username NVARCHAR(35) NOT NULL,
+    Address_dir NVARCHAR(35),
+    Country_of_origin NVARCHAR(15),
     Phone NVARCHAR(20),
     User_status NVARCHAR(50) NOT NULL CHECK (User_status IN ('Active', 'Inactive')),
     last_access DATETIME,
-    Deactivation_reason NVARCHAR(255),
+    Deactivation_reason NVARCHAR(35),
 
     -- Foreign Key Constraints
     -- Relación 1:N con [ROLE]
@@ -58,8 +58,8 @@ GO
 -- 3. Tabla: [MARKET]
 CREATE TABLE [MARKET] (
     Id INT IDENTITY(2001,1) PRIMARY KEY,
-    Market_name NVARCHAR(255) NOT NULL UNIQUE,
-    Market_status NVARCHAR(100) NOT NULL,
+    Market_name NVARCHAR(35) NOT NULL UNIQUE,
+    Market_status NVARCHAR(15) NOT NULL,
     Currency NVARCHAR(50) NOT NULL
 );
 GO
@@ -70,12 +70,12 @@ GO
 CREATE TABLE [COMPANY] (
     Id INT IDENTITY(3001,1) PRIMARY KEY,
     Market_Id INT NOT NULL,
-    Company_name NVARCHAR(255) NOT NULL UNIQUE,
+    Company_name NVARCHAR(35) NOT NULL UNIQUE,
     Total_shares_count BIGINT NOT NULL CHECK (Total_shares_count >= 0),
     Available_shares BIGINT NOT NULL CHECK (Available_shares >= 0),
-    Current_market_cap DECIMAL(18, 2) NOT NULL,
-    Company_status NVARCHAR(100) NOT NULL CHECK (Company_status IN ('Listed', 'Delisted')),
-    Delisting_reason NVARCHAR(255),
+    Current_market_cap DECIMAL(10, 2) NOT NULL,
+    Company_status NVARCHAR(15) NOT NULL CHECK (Company_status IN ('Listed', 'Delisted')),
+    Delisting_reason NVARCHAR(35),
 
     -- Foreign Key Constraints
     -- Relación 1:N con [MARKET]
@@ -90,7 +90,7 @@ GO
 CREATE TABLE [PRICE_HISTORY] (
     Id INT IDENTITY(4001,1) PRIMARY KEY,
     Company_id INT NOT NULL,
-    Price DECIMAL(18, 4) NOT NULL CHECK (Price >= 0),
+    Price DECIMAL(10, 4) NOT NULL CHECK (Price >= 0),
     PH_timestamp DATETIME NOT NULL DEFAULT GETDATE(),
 
     -- Foreign Key Constraints
@@ -109,10 +109,10 @@ GO
 CREATE TABLE [WALLET] (
     Id INT IDENTITY(5001,1) PRIMARY KEY,
     User_id INT NOT NULL UNIQUE,
-    Balance DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    Balance DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     Category NVARCHAR(50) NOT NULL CHECK (Category IN ('Junior', 'Mid', 'Senior')),
-    Daily_limit DECIMAL(18, 2) NOT NULL,
-    Daily_consumption DECIMAL(18, 2) NOT NULL DEFAULT 0.00,
+    Daily_limit DECIMAL(10, 2) NOT NULL,
+    Daily_consumption DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
 
     -- Foreign Key Constraints
     -- Relación 1:1 con [USER]
@@ -127,7 +127,7 @@ GO
 CREATE TABLE [TOP_UP] (
     Id INT IDENTITY(6001,1) PRIMARY KEY,
     Wallet_id INT NOT NULL,
-    Amount DECIMAL(18, 2) NOT NULL CHECK (Amount > 0),
+    Amount DECIMAL(10, 2) NOT NULL CHECK (Amount > 0),
     Top_up_timestamp DATETIME NOT NULL DEFAULT GETDATE(),
 
     -- Foreign Key Constraints
@@ -145,7 +145,7 @@ CREATE TABLE [TRADER_PORTFOLIO] (
     User_id INT NOT NULL,
     Company_id INT NOT NULL,
     Share_count INT NOT NULL CHECK (Share_count >= 0),
-    Average_cost DECIMAL(18, 2) NOT NULL CHECK (Average_cost >= 0),
+    Average_cost DECIMAL(10, 2) NOT NULL CHECK (Average_cost >= 0),
 
     -- Foreign Key Constraints
     -- Relación N:1 con [USER]
@@ -169,7 +169,7 @@ CREATE TABLE [TRANSACTION] (
     Company_id INT NOT NULL,
     Transaction_type NVARCHAR(50) NOT NULL CHECK (Transaction_type IN ('Buy', 'Sell')),
     QUANTITY INT NOT NULL,
-    Price DECIMAL(18, 2) NOT NULL CHECK (Price >= 0),
+    Price DECIMAL(10, 2) NOT NULL CHECK (Price >= 0),
     Transaction_timestamp DATETIME NOT NULL DEFAULT GETDATE(),
 
     -- Foreign Key Constraints
@@ -187,8 +187,8 @@ GO
 -- 10. Tabla: [AUDIT]
 CREATE TABLE [AUDIT] (
     Id INT IDENTITY(9001,1) PRIMARY KEY, 
-    User_id INT NOT NULL,
-    Event_type NVARCHAR(255) NOT NULL, 
+    User_id INT,
+    Event_type NVARCHAR(35) NOT NULL, 
     Object_Id INT,
     Reason NVARCHAR(1000), 
     Action_timestamp DATETIME NOT NULL DEFAULT GETDATE(),
@@ -211,5 +211,3 @@ WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = 'dbo'
 ORDER BY TABLE_NAME;
 GO
 -------------------------------------------------------------------------
-
--- Listar todas las tablas creadas en la base de datos BrokerTEC
