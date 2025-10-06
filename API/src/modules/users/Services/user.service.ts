@@ -3,8 +3,8 @@
  * Aquí usamos el repositorio de TypeORM y exponemos métodos CRUD.
  * Si tu equipo viene de MVC, esta capa les resultará familiar.
  */
-import { AppDataSource } from '../../config/data-source';
-import { User } from './user.entity';
+import { AppDataSource } from '../../../config/data-source';
+import { User } from '../user.entity';
 import { Repository } from 'typeorm';
 
 export class UserService {

@@ -1,8 +1,10 @@
 import 'reflect-metadata'; // siempre primero para decorators
 import express from 'express';
+import swaggerUi from 'swagger-ui-express';
 import { AppDataSource } from './config/data-source';
 import { ENV } from './config/env';
-import usersController from './modules/users/user.controller';
+import { swaggerSpec, swaggerUiOptions } from './config/swagger';
+import usersController from './modules/users/Controllers/user.controller';
 
 async function bootstrap() {
   await AppDataSource.initialize();        // conecta TypeORM
@@ -10,6 +12,33 @@ async function bootstrap() {
   const app = express();
   app.use(express.json());
 
+  // Configuración de Swagger UI
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+  
+  // Endpoint para obtener la especificación OpenAPI en formato JSON
+  app.get('/api-docs.json', (_req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
+
+  /**
+   * @swagger
+   * /health:
+   *   get:
+   *     summary: Verificar estado de salud del servicio
+   *     description: Endpoint para verificar que el servicio está funcionando correctamente
+   *     tags:
+   *       - Health Check
+   *     responses:
+   *       200:
+   *         description: Servicio funcionando correctamente
+   *         content:
+   *           application/json:
+   *             schema:
+   *               $ref: '#/components/schemas/HealthCheck'
+   *             example:
+   *               ok: true
+   */
   // healthcheck
   app.get('/health', (_req, res) => res.json({ ok: true }));
 
