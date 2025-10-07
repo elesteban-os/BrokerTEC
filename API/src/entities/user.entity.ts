@@ -1,5 +1,7 @@
 // Entity para tabla usuarios
-import { Entity, PrimaryGeneratedColumn, Column, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, Index, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
+import { PhoneNumberUser } from './phone-number-user.entity';
+import { Role } from './role.entity';
 
 @Entity('usuarios')
 export class User {
@@ -31,4 +33,16 @@ export class User {
 
   @Column({ type: 'bit', default: true })
   status!: boolean;
+
+  @Column({ type: 'int' })
+  id_role!: number;
+
+  // Relación muchos a uno: muchos usuarios pueden tener un rol
+  @ManyToOne(() => Role)
+  @JoinColumn({ name: 'id_role' })
+  role!: Role;
+
+  // Relación uno a muchos: un usuario puede tener muchos teléfonos
+  @OneToMany(() => PhoneNumberUser, phoneNumber => phoneNumber.user)
+  phoneNumbers!: PhoneNumberUser[];
 }
