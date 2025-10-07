@@ -30,6 +30,14 @@ const swaggerOptions: swaggerJsdoc.Options = {
       }
     ],
     components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Token JWT para autenticación. Formato: Bearer <token>'
+        }
+      },
       schemas: {
         // Esquemas de datos comunes
         Error: {
@@ -59,6 +67,54 @@ const swaggerOptions: swaggerJsdoc.Options = {
       },
       responses: {
         // Respuestas comunes
+        Unauthorized: {
+          description: 'No autorizado - Token JWT faltante o inválido',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: {
+                    type: 'boolean',
+                    example: false
+                  },
+                  message: {
+                    type: 'string',
+                    example: 'Token de autorización requerido'
+                  },
+                  error: {
+                    type: 'string',
+                    example: 'MISSING_TOKEN'
+                  }
+                }
+              }
+            }
+          }
+        },
+        Forbidden: {
+          description: 'Prohibido - Permisos insuficientes',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: {
+                    type: 'boolean',
+                    example: false
+                  },
+                  message: {
+                    type: 'string',
+                    example: 'Permisos insuficientes para esta acción'
+                  },
+                  error: {
+                    type: 'string',
+                    example: 'INSUFFICIENT_PERMISSIONS'
+                  }
+                }
+              }
+            }
+          }
+        },
         BadRequest: {
           description: 'Solicitud incorrecta - datos de entrada inválidos',
           content: {

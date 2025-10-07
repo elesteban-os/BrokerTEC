@@ -37,6 +37,9 @@ export class User {
   @Column({ type: 'int' })
   id_role!: number;
 
+  @Column({ type: 'int', default: 0 })
+  token_version!: number; // Para invalidar tokens JWT incrementando la versión
+
   // Relación muchos a uno: muchos usuarios pueden tener un rol
   @ManyToOne(() => Role)
   @JoinColumn({ name: 'id_role' })

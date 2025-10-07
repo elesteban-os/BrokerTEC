@@ -1,0 +1,54 @@
+// Tipos de acciones auditables en BrokerTEC
+export enum TipoAccionAuditoria {
+  // === AUTENTICACIÓN ===
+  LOGIN = 'LOGIN',
+  LOGOUT = 'LOGOUT',
+  LOGIN_FAILED = 'LOGIN_FAILED',
+  PASSWORD_CHANGE = 'PASSWORD_CHANGE',
+
+  // === GESTIÓN DE USUARIOS ===
+  USER_CREATE = 'USER_CREATE',
+  USER_UPDATE = 'USER_UPDATE',
+  USER_DELETE = 'USER_DELETE',
+  USER_DISABLE = 'USER_DISABLE',
+  USER_ENABLE = 'USER_ENABLE',
+  USER_ROLE_CHANGE = 'USER_ROLE_CHANGE',
+  CAMBIO_CATEGORIA = 'CAMBIO_CATEGORIA', // junior/mid/senior
+
+  // === OPERACIONES DE TRADING ===
+  COMPRA = 'COMPRA',
+  VENTA = 'VENTA',
+  LIQUIDAR_TODO = 'LIQUIDAR_TODO',
+  
+  // === GESTIÓN DE WALLET ===
+  RECARGA_WALLET = 'RECARGA_WALLET',
+  
+  // === GESTIÓN DE EMPRESAS ===
+  EMPRESA_CREATE = 'EMPRESA_CREATE',
+  EMPRESA_UPDATE = 'EMPRESA_UPDATE',
+  EMPRESA_DELETE = 'EMPRESA_DELETE',
+  DELISTING = 'DELISTING', // Eliminación con liquidación automática
+  
+  // === GESTIÓN DE MERCADOS ===
+  HABILITAR_MERCADO = 'HABILITAR_MERCADO',
+  DESHABILITAR_MERCADO = 'DESHABILITAR_MERCADO',
+  
+  // === GESTIÓN DE PRECIOS ===
+  PRECIO_UPDATE_MANUAL = 'PRECIO_UPDATE_MANUAL',
+  PRECIO_UPDATE_API = 'PRECIO_UPDATE_API',
+  
+  // === ACCIONES ADMINISTRATIVAS ===
+  ADMIN_ACCESS = 'ADMIN_ACCESS',
+  SYSTEM_CONFIG_CHANGE = 'SYSTEM_CONFIG_CHANGE'
+}
+
+// Entidades que pueden ser afectadas
+export enum EntidadAfectada {
+  USUARIOS = 'usuarios',
+  EMPRESAS = 'empresas', 
+  MERCADOS = 'mercados',
+  WALLET = 'wallet',
+  ORDENES = 'ordenes',
+  PRECIOS = 'precios',
+  SISTEMA = 'sistema'
+}

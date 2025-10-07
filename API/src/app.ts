@@ -5,6 +5,9 @@ import { AppDataSource } from './config/data-source';
 import { ENV } from './config/env';
 import { swaggerSpec, swaggerUiOptions } from './config/swagger';
 import usersController from './modules/users/Controllers/user.controller';
+import publicRegisterController from './modules/auth/Controllers/public-register.controller';
+import adminRegisterController from './modules/auth/Controllers/admin-register.controller';
+import loginController from './modules/auth/Controllers/login.controller';
 
 async function bootstrap() {
   await AppDataSource.initialize();        // conecta TypeORM
@@ -44,6 +47,15 @@ async function bootstrap() {
 
   // rutas del módulo users con prefijo /api
   app.use('/api/users', usersController);
+
+  // rutas del módulo auth - registro público
+  app.use('/api/auth', publicRegisterController);
+  
+  // rutas del módulo auth - registro administrativo
+  app.use('/api/auth', adminRegisterController);
+  
+  // rutas del módulo auth - login/logout/refresh
+  app.use('/api/auth', loginController);
 
   // error handler centralizado (no repitas try/catch en cada ruta)
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
