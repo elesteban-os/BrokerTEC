@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { ENV } from './env';
-import { User } from '../modules/users/user.entity'; // 👈 importa la entidad
 import path from 'node:path';
 
 export const AppDataSource = new DataSource({
@@ -17,7 +16,10 @@ export const AppDataSource = new DataSource({
   },
   synchronize: false,               // en prod: SIEMPRE false; usa migraciones
   logging: false,
-  entities: [User],                 //  registra la entidad
+  entities: [
+    path.join(process.cwd(), 'src/entities/*.ts'),
+    path.join(process.cwd(), 'dist/entities/*.js'),
+  ],
   // rutas de migraciones para dev (ts-node) y build (js)
   migrations: [
     path.join(process.cwd(), 'src/db/migrations/*.ts'),

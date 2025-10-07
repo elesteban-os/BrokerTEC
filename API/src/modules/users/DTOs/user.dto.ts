@@ -1,8 +1,4 @@
 /**
- * DTO (Data Transfer Object) = contrato de entrada/salida del endpoint.
- * Con class-validator definimos reglas que se validan ANTES de tocar la DB.
- * Así evitamos insertar basura y simplificamos los controladores.
- * 
  * @swagger
  * components:
  *   schemas:
@@ -11,52 +7,141 @@
  *       properties:
  *         alias:
  *           type: string
- *           description: Alias único del usuario
  *           example: "trader_001"
- *         role:
+ *         email:
  *           type: string
- *           enum: [TRADER, ADMIN, ANALYST]
- *           description: Rol del usuario en el sistema
- *           example: "TRADER"
+ *           format: email
+ *           example: "usuario@brokertec.com"
+ *         nombre:
+ *           type: string
+ *           example: "Juan"
+ *         apellido1:
+ *           type: string
+ *           example: "Pérez"
+ *         apellido2:
+ *           type: string
+ *           example: "González"
+ *         password:
+ *           type: string
+ *           example: "MiPassword123!"
+ *         country_origin:
+ *           type: string
+ *           example: "Costa Rica"
  *       required:
  *         - alias
- *         - role
+ *         - email
+ *         - nombre
+ *         - apellido1
+ *         - password
+ *         - country_origin
  * 
  *     UpdateUserDto:
  *       type: object
  *       properties:
  *         alias:
  *           type: string
- *           description: Nuevo alias único del usuario
  *           example: "trader_002"
- *         role:
+ *         email:
  *           type: string
- *           enum: [TRADER, ADMIN, ANALYST]
- *           description: Nuevo rol del usuario en el sistema
- *           example: "ADMIN"
- *       required:
- *         - alias
- *         - role
+ *           format: email
+ *           example: "nuevo@brokertec.com"
+ *         nombre:
+ *           type: string
+ *           example: "Carlos"
+ *         apellido1:
+ *           type: string
+ *           example: "López"
+ *         apellido2:
+ *           type: string
+ *           example: "Martínez"
+ *         password:
+ *           type: string
+ *           example: "NuevaPassword456!"
+ *         country_origin:
+ *           type: string
+ *           example: "México"
+ *         status:
+ *           type: boolean
+ *           example: true
  */
-import { IsIn, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsBoolean, IsOptional, MinLength, MaxLength } from 'class-validator';
 
 export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
+  @MaxLength(50)
   alias!: string;
 
+  @IsEmail()
+  @IsNotEmpty()
+  @MaxLength(100)
+  email!: string;
+
   @IsString()
-  @IsIn(['TRADER', 'ADMIN', 'ANALYST'])
-  role!: 'TRADER' | 'ADMIN' | 'ANALYST';
+  @IsNotEmpty()
+  @MaxLength(50)
+  nombre!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  apellido1!: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  apellido2?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)  // Mínimo 8 caracteres
+  @MaxLength(255)
+  password!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  country_origin!: string;
 }
 
 export class UpdateUserDto {
-  // En PUT vamos a permitir cambiar ambos campos.
   @IsString()
   @IsNotEmpty()
+  @MaxLength(50)
   alias!: string;
 
+  @IsEmail()
+  @IsNotEmpty()
+  @MaxLength(100)
+  email!: string;
+
   @IsString()
-  @IsIn(['TRADER', 'ADMIN', 'ANALYST'])
-  role!: 'TRADER' | 'ADMIN' | 'ANALYST';
+  @IsNotEmpty()
+  @MaxLength(50)
+  nombre!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  apellido1!: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  apellido2?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8)
+  @MaxLength(255)
+  password!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  country_origin!: string;
+
+  @IsBoolean()
+  @IsOptional()
+  status?: boolean;
 }

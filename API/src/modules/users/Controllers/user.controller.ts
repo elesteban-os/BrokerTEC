@@ -1,19 +1,48 @@
 /**
- * CONTROLLER = define rutas HTTP y usa el repositorio de TypeORM.
- * Repositorio: provee métodos de alto nivel (find, findOne, save, delete, etc.)
- * Se opera con objetos evitando SQL manual para cada CRUD.
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         id_user:
+ *           type: string
+ *           format: uuid
+ *           example: "123e4567-e89b-12d3-a456-426614174000"
+ *         alias:
+ *           type: string
+ *           example: "trader_001"
+ *         email:
+ *           type: string
+ *           format: email
+ *           example: "usuario@brokertec.com"
+ *         nombre:
+ *           type: string
+ *           example: "Juan"
+ *         apellido1:
+ *           type: string
+ *           example: "Pérez"
+ *         apellido2:
+ *           type: string
+ *           nullable: true
+ *           example: "González"
+ *         password:
+ *           type: string
+ *           example: "$2b$10$..."
+ *         country_origin:
+ *           type: string
+ *           example: "Costa Rica"
+ *         status:
+ *           type: boolean
+ *           example: true
  */
 import { Router } from 'express';
-import { AppDataSource } from '../../../config/data-source';
-import { User } from '../user.entity';
 import { validateDto } from '../../../common/validate-dto';
 import { CreateUserDto, UpdateUserDto } from '../DTOs/user.dto';
+import { UserService } from '../Services/user.service';
 
 const router = Router();
-
-// Función helper para obtener el repositorio de la entidad.
-// Un "Repository<User>" expone métodos CRUD ya implementados por TypeORM.
-const repo = () => AppDataSource.getRepository(User);
+const userService = new UserService();
 
 /**
  * @swagger
@@ -35,7 +64,7 @@ const repo = () => AppDataSource.getRepository(User);
  */
 router.get('/', async (_req, res, next) => {
   try {
-    const users = await repo().find();
+    const users = await userService.list();
     res.json(users);
   } catch (err) {
     next(err);
@@ -53,7 +82,9 @@ router.get('/', async (_req, res, next) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
+ *         description: UUID del usuario
  *     responses:
  *       200:
  *         description: Usuario encontrado
@@ -68,9 +99,9 @@ router.get('/', async (_req, res, next) => {
  */
 router.get('/:id', async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-    const user = await repo().findOne({ where: { id } });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    const id_user = req.params.id;
+    const user = await userService.getById(id_user);
+    if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
     res.json(user);
   } catch (err) {
     next(err);
@@ -105,19 +136,12 @@ router.get('/:id', async (req, res, next) => {
  */
 router.post('/', validateDto(CreateUserDto), async (req, res, next) => {
   try {
-    const { alias, role } = (req as any).dto as CreateUserDto;
-
-    // create() no inserta en BD, solo prepara el objeto
-    const user = repo().create({ alias, role });
-
-    // save() inserta/actualiza en BD según tenga PK o no
-    const saved = await repo().save(user);
-
+    const userData = (req as any).dto as CreateUserDto;
+    const saved = await userService.create(userData);
     res.status(201).json(saved);
   } catch (err: any) {
-    // Si rompes la restricción única de alias, caerá aquí
-    if (err?.code === 'EREQUEST' || err?.number === 2627 /* unique index */) {
-      return res.status(409).json({ message: 'Alias already exists' });
+    if (err.message.includes('ya está en uso')) {
+      return res.status(409).json({ message: err.message });
     }
     next(err);
   }
@@ -134,7 +158,9 @@ router.post('/', validateDto(CreateUserDto), async (req, res, next) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
+ *         description: UUID del usuario
  *     requestBody:
  *       required: true
  *       content:
@@ -153,26 +179,22 @@ router.post('/', validateDto(CreateUserDto), async (req, res, next) => {
  *       404:
  *         description: Usuario no encontrado
  *       409:
- *         description: Alias ya existe
+ *         description: Alias o email ya existe
  *       500:
  *         description: Error del servidor
  */
 router.put('/:id', validateDto(UpdateUserDto), async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-    const { alias, role } = (req as any).dto as UpdateUserDto;
+    const id_user = req.params.id;
+    const userData = (req as any).dto as UpdateUserDto;
 
-    const user = await repo().findOne({ where: { id } });
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    const saved = await userService.update(id_user, userData);
+    if (!saved) return res.status(404).json({ message: 'Usuario no encontrado' });
 
-    // merge() aplica cambios al entity existente
-    repo().merge(user, { alias, role });
-
-    const saved = await repo().save(user);
     res.json(saved);
   } catch (err: any) {
-    if (err?.code === 'EREQUEST' || err?.number === 2627) {
-      return res.status(409).json({ message: 'Alias Existente' });
+    if (err.message.includes('ya está en uso')) {
+      return res.status(409).json({ message: err.message });
     }
     next(err);
   }
@@ -189,7 +211,9 @@ router.put('/:id', validateDto(UpdateUserDto), async (req, res, next) => {
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
+ *         description: UUID del usuario
  *     responses:
  *       204:
  *         description: Usuario eliminado
@@ -200,12 +224,10 @@ router.put('/:id', validateDto(UpdateUserDto), async (req, res, next) => {
  */
 router.delete('/:id', async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-
-    const result = await repo().delete(id);
-    // result.affected = cantidad de filas afectadas
-    if (!result.affected) return res.status(404).json({ message: 'Usuario no encontrado' });
-
+    const id_user = req.params.id;
+    const success = await userService.remove(id_user);
+    
+    if (!success) return res.status(404).json({ message: 'Usuario no encontrado' });
     res.status(204).send(); // 204 No Content
   } catch (err) {
     next(err);
