@@ -1,7 +1,17 @@
 import 'reflect-metadata';
+import path from 'node:path';
 import { DataSource } from 'typeorm';
 import { ENV } from './env';
-import path from 'node:path';
+
+const isCompiled = path.extname(__filename) === '.js';
+
+const entityGlobs = isCompiled
+  ? [path.join(process.cwd(), 'dist/entities/*.js')]
+  : [path.join(process.cwd(), 'src/entities/*.ts')];
+
+const migrationGlobs = isCompiled
+  ? [path.join(process.cwd(), 'dist/db/migrations/*.js')]
+  : [path.join(process.cwd(), 'src/db/migrations/*.ts')];
 
 export const AppDataSource = new DataSource({
   type: 'mssql',
@@ -16,13 +26,7 @@ export const AppDataSource = new DataSource({
   },
   synchronize: false,               // en prod: SIEMPRE false; usa migraciones
   logging: false,
-  entities: [
-    path.join(process.cwd(), 'src/entities/*.ts'),
-    path.join(process.cwd(), 'dist/entities/*.js'),
-  ],
+  entities: entityGlobs,
   // rutas de migraciones para dev (ts-node) y build (js)
-  migrations: [
-    path.join(process.cwd(), 'src/db/migrations/*.ts'),
-    path.join(process.cwd(), 'dist/db/migrations/*.js'),
-  ],
+  migrations: migrationGlobs,
 });

@@ -4,7 +4,6 @@ import swaggerUi from 'swagger-ui-express';
 import { AppDataSource } from './config/data-source';
 import { ENV } from './config/env';
 import { swaggerSpec, swaggerUiOptions } from './config/swagger';
-import usersController from './modules/users/Controllers/user.controller';
 import publicRegisterController from './modules/auth/Controllers/public-register.controller';
 import adminRegisterController from './modules/auth/Controllers/admin-register.controller';
 import loginController from './modules/auth/Controllers/login.controller';
@@ -45,8 +44,7 @@ async function bootstrap() {
   // healthcheck
   app.get('/health', (_req, res) => res.json({ ok: true }));
 
-  // rutas del módulo users con prefijo /api
-  app.use('/api/users', usersController);
+
 
   // rutas del módulo auth - registro público
   app.use('/api/auth', publicRegisterController);
