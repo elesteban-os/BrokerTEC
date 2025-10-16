@@ -2,6 +2,8 @@ import 'reflect-metadata';
 import path from 'node:path';
 import { DataSource } from 'typeorm';
 import { ENV } from './env';
+import { User } from '../entities/user.entity';
+import { Wallet } from '../entities/wallet.entity';
 
 const isCompiled = path.extname(__filename) === '.js';
 
@@ -24,8 +26,8 @@ export const AppDataSource = new DataSource({
     encrypt: ENV.DB_ENCRYPT,
     trustServerCertificate: ENV.DB_TRUST_SERVER_CERT,
   },
-  synchronize: false,               // en prod: SIEMPRE false; usa migraciones
-  logging: false,
+  synchronize: true,               // en prod: SIEMPRE false; usa migraciones
+  logging: true,
   entities: entityGlobs,
   // rutas de migraciones para dev (ts-node) y build (js)
   migrations: migrationGlobs,

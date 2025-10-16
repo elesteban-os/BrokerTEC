@@ -1,6 +1,10 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import { ENV } from './env';
+import path from 'path';
+
+const ROOT = path.resolve(__dirname, '..');      // /src
+const DIST = path.resolve(ROOT, '..', 'dist');   // /dist
 
 // Configuración básica de Swagger
 const swaggerOptions: swaggerJsdoc.Options = {
@@ -164,7 +168,21 @@ const swaggerOptions: swaggerJsdoc.Options = {
     './src/modules/**/Controllers/*.controller.ts',
     './src/modules/**/DTOs/*.dto.ts',
     './src/modules/**/*.entity.ts',
-    './src/modules/**/Services/*.service.ts'
+    './src/modules/**/Services/*.service.ts',
+
+    // 🔽 añadidos seguros (no rompen nada) para encontrar compilados
+    path.join(DIST, 'app.js'),
+    path.join(DIST, 'modules', '**', 'Controllers', '*.controller.js'),
+    path.join(DIST, 'modules', '**', 'DTOs', '*.dto.js'),
+    path.join(DIST, 'modules', '**', '*.entity.js'),
+    path.join(DIST, 'modules', '**', 'Services', '*.service.js'),
+    // al final del array apis:
+    path.join(process.cwd(), 'dist/app.js'),
+    path.join(process.cwd(), 'dist/modules/**/Controllers/*.controller.js'),
+    path.join(process.cwd(), 'dist/modules/**/DTOs/*.dto.js'),
+    path.join(process.cwd(), 'dist/modules/**/*.entity.js'),
+    path.join(process.cwd(), 'dist/modules/**/Services/*.service.js'),
+
   ]
 };
 

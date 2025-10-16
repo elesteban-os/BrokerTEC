@@ -8,6 +8,7 @@ import { AuthenticatedUser } from '../auth.types';
 import { AuditoriaService } from '../../auditoria/Services/auditoria.service';
 import { TipoAccionAuditoria, EntidadAfectada } from '../../../common/audit.types';
 import * as bcrypt from 'bcrypt';
+import { WalletService } from './wallet.service';
 
 export class PublicRegisterService {
   private userRepository: Repository<User>;
@@ -63,6 +64,14 @@ export class PublicRegisterService {
 
     // Guardar el usuario
     const savedUser = await this.userRepository.save(newUser);
+    
+    // Crear wallet automáticamente solo para TRADER
+  try {
+    const walletService = new WalletService();
+    await walletService.createWalletForTrader(savedUser.id_user); // categoría por defecto: JUNIOR
+} catch (e) {
+  console.error('No se pudo crear la wallet del TRADER:', e);
+}
 
     // Guardar números de teléfono si se proporcionaron
     if (registerDto.phone_numbers && registerDto.phone_numbers.length > 0) {

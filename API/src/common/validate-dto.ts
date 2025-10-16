@@ -24,3 +24,5 @@ export const validateDto = <T extends object>(cls: new () => T) =>
     (req as any).dto = dto; // guardamos el dto validado para el handler
     next();
   };
+
+export { validate };
