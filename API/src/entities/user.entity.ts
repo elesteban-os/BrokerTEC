@@ -48,4 +48,5 @@ export class User {
   // Relación uno a muchos: un usuario puede tener muchos teléfonos
   @OneToMany(() => PhoneNumberUser, phoneNumber => phoneNumber.user)
   phoneNumbers!: PhoneNumberUser[];
+    wallet: any;
 }
