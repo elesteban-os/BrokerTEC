@@ -1,0 +1,149 @@
+@startchen
+entity USER {
+    Id <<key>>
+    Name
+    Alias <<unique>>
+    Address
+    Country_of_origin
+    Phone
+    Email <<unique>>
+    Password
+    Status
+    Last_access
+    Deactivation_reason
+}
+
+entity ROLE {
+    Id <<key>>
+    Type
+}
+
+entity MARKET {
+    Id <<key>>
+    Name
+    Status
+    Concurrency
+}
+
+entity COMPANY {
+    Id <<key>>
+    Name
+    Total_shares_count
+    Available_shares
+    Current_market_cap
+    Status
+    Delisting_reason
+}
+
+entity PRICE_HISTORY {
+    Id <<key>>
+    Price
+    Timestamp
+}
+
+entity TRADER_PORTFOLIO {
+    Id <<key>>
+    Share_count
+    Average_cost
+}
+
+entity TRANSACTION {
+    Id <<key>>
+    Type
+    Quantity
+    Price
+    Timestamp
+}
+
+entity WALLET {
+    Id <<key>>
+    Balance
+    Category
+    Daily_limit
+    Daily_cosumption
+}
+
+entity TOP_UP {
+    Id <<key>>
+    Amount
+    Timestamp
+}
+
+entity AUDIT {
+    Id <<key>>
+    Event_type
+    Reason
+    Timestamp
+}
+
+relationship INVEST_IN {
+/'Un usario con rol trader puede tener múltiples posiciones en su cartera de trader'/
+}
+
+relationship OWNS {
+/'Un usuario trader tiene un único wallet'/
+}
+
+relationship PERFORMS {
+/'Un usuario trader puede realizar muchas transacciones'/
+}
+
+relationship GENERATE {
+/'Un usuario puede generar múltiples registros de auditoria'/
+}
+
+relationship CONTAINS {
+/'Un mercado puede contener múltiples empresas'/
+}
+
+relationship RECORDS_PRICES {
+/'Una empresa tiene mucos precios históricos'/
+}
+
+relationship IS_COMPOSED_OF {
+/'Una empresa puede estar presente en la cartera de múltiples Traders'/
+}
+
+relationship IS_PART_OF {
+/'Una empresa puede ser el objeto de múltiples transacciones'/
+}
+
+relationship RECEIVES {
+/'Un wallet puede tener múltiples recargas'/
+}
+
+relationship HAS_ROLE {
+/'Un usuario puede tener un role'/
+}
+
+USER -1- INVEST_IN
+INVEST_IN -N- TRADER_PORTFOLIO
+
+USER -1- OWNS
+OWNS -1- WALLET
+
+USER -1- PERFORMS
+PERFORMS -N- TRANSACTION
+
+USER -1- GENERATE
+GENERATE -N- AUDIT
+
+USER -N- HAS_ROLE
+HAS_ROLE -1- ROLE
+
+MARKET -1- CONTAINS
+CONTAINS -N- COMPANY
+
+COMPANY -1- RECORDS_PRICES
+RECORDS_PRICES -N- PRICE_HISTORY
+
+COMPANY -1- IS_PART_OF
+IS_PART_OF -N- TRANSACTION
+
+COMPANY -1- IS_COMPOSED_OF
+IS_COMPOSED_OF -N- TRADER_PORTFOLIO
+
+WALLET -1- RECEIVES
+RECEIVES -N- TOP_UP
+
+@endchen
