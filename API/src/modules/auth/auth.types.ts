@@ -1,6 +1,7 @@
 // Tipos e interfaces para autenticación
+// Nota: se actualiza id_user para que sea entero (PK autoincremental)
 export interface JwtPayload {
-  id_user: string;
+  id_user: number; // antes: string (uuid)
   alias: string;
   email: string;
   role: {
@@ -13,7 +14,7 @@ export interface JwtPayload {
 }
 
 export interface AuthenticatedUser {
-  id_user: string;
+  id_user: number; // antes: string (uuid)
   alias: string;
   email: string;
   nombre: string;

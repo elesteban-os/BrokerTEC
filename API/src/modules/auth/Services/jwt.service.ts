@@ -9,7 +9,7 @@ export class JwtService {
    */
   async generateTokenPair(user: AuthenticatedUser): Promise<TokenPair> {
     const payload: JwtPayload = {
-      id_user: user.id_user,
+      id_user: user.id_user, // int
       alias: user.alias,
       email: user.email,
       role: user.role,
@@ -42,7 +42,7 @@ export class JwtService {
   private generateRefreshToken(payload: JwtPayload): string {
     // Para refresh token, solo incluimos info mínima
     const refreshPayload = {
-      id_user: payload.id_user,
+      id_user: payload.id_user, // int
       token_version: payload.token_version
     };
 

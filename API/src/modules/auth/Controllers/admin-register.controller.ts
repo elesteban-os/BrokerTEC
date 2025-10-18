@@ -45,9 +45,9 @@ import { RolesGuard } from '../Guards/roles.guard';
  *                   type: object
  *                   properties:
  *                     id_user:
- *                       type: string
- *                       format: uuid
- *                       example: "123e4567-e89b-12d3-a456-426614174000"
+ *                       type: integer
+ *                       format: int32
+ *                       example: 1
  *                     alias:
  *                       type: string
  *                       example: "nuevo_admin"

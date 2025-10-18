@@ -2,7 +2,7 @@
 
 Sistema de trading desarrollado con Node.js, TypeScript y SQL Server.
 
-## 📋 Prerequisitos
+## Prerequisitos
 
 - **Node.js** v18+
 - **SQL Server** (local)

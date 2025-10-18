@@ -46,8 +46,8 @@ export class LoginDto {
  *           type: object
  *           properties:
  *             id_user:
- *               type: string
- *               format: uuid
+ *               type: integer
+ *               format: int32
  *             alias:
  *               type: string
  *             email:
@@ -64,7 +64,7 @@ export interface LoginResponse {
   access_token: string;
   refresh_token: string;
   user: {
-    id_user: string;
+    id_user: number; // antes: string (uuid)
     alias: string;
     email: string;
     nombre: string;

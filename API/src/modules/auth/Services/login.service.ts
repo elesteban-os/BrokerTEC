@@ -172,7 +172,8 @@ export class LoginService {
   /**
    * Logout - invalidar tokens incrementando token_version
    */
-  async logout(userId: string): Promise<void> {
+  // Ajuste: userId ahora es entero
+  async logout(userId: number): Promise<void> {
     // Buscar información del usuario para auditoría
     const user = await this.userRepository.findOne({
       where: { id_user: userId },

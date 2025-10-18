@@ -5,14 +5,14 @@ import { TipoAccionAuditoria, EntidadAfectada } from '../../../common/audit.type
 
 export interface RegistroAuditoria {
   // Usuario que realiza la acción
-  id_user?: string | null;
+  id_user?: number | null; // antes: string (uuid)
   user_alias?: string | null;
   user_role?: string | null;
   
   // Qué se hizo
   accion: TipoAccionAuditoria;
   entidad_afectada: EntidadAfectada;
-  id_registro_afectado?: string | null;
+  id_registro_afectado?: number | null; // antes: string (uuid)
   
   // Específico para trading
   ticker_empresa?: string | null;
@@ -73,7 +73,7 @@ export class AuditoriaService {
    * Obtener historial de auditoría con filtros básicos
    */
   async obtenerHistorial(filtros: {
-    id_user?: string;
+    id_user?: number; // antes: string (uuid)
     accion?: TipoAccionAuditoria;
     entidad_afectada?: EntidadAfectada;
     ticker_empresa?: string;

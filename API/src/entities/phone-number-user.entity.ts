@@ -4,11 +4,11 @@ import { User } from './user.entity';
 
 @Entity('PhoneNumber_User')
 export class PhoneNumberUser {
-  @PrimaryGeneratedColumn('uuid')
-  id_phone!: string;
+  @PrimaryGeneratedColumn()
+  id_phone!: number;
 
-  @Column({ type: 'uuid' })
-  id_user!: string;
+  @Column({ type: 'int' })
+  id_user!: number;
 
   @Column({ type: 'varchar', length: 20 })
   phone_number!: string;

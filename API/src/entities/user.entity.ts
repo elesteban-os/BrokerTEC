@@ -5,8 +5,8 @@ import { Role } from './role.entity';
 
 @Entity('usuarios')
 export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id_user!: string;
+  @PrimaryGeneratedColumn()
+  id_user!: number;
 
   @Index({ unique: true })
   @Column({ type: 'varchar', length: 50 })

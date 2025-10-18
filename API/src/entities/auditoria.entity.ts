@@ -4,12 +4,12 @@ import { User } from './user.entity';
 
 @Entity('auditoria')
 export class Auditoria {
-  @PrimaryGeneratedColumn('uuid')
-  id_auditoria!: string;
+  @PrimaryGeneratedColumn()
+  id_auditoria!: number;
 
   // ===== ¿QUIÉN HIZO LA ACCIÓN? =====
-  @Column({ type: 'uuid', nullable: true })
-  id_user!: string | null; // Puede ser null para acciones del sistema
+  @Column({ type: 'int', nullable: true })
+  id_user!: number | null; // Puede ser null para acciones del sistema
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   user_alias!: string | null; // Guardamos alias por si se elimina el usuario
@@ -24,8 +24,8 @@ export class Auditoria {
   @Column({ type: 'varchar', length: 50 })
   entidad_afectada!: string; // usuarios, empresas, mercados, wallet, ordenes
 
-  @Column({ type: 'uuid', nullable: true })
-  id_registro_afectado!: string | null; // ID del registro modificado
+  @Column({ type: 'int', nullable: true })
+  id_registro_afectado!: number | null; // ID del registro modificado
 
   // ===== ESPECÍFICO PARA TRADING =====
   @Column({ type: 'varchar', length: 10, nullable: true })

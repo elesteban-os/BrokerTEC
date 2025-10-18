@@ -7,9 +7,10 @@ import { Repository } from 'typeorm';
 /**
  * Interfaz para extender Request con información del usuario autenticado
  */
+// Ajuste: id_user ahora es entero (int) en toda la app
 export interface AuthenticatedRequest extends Request {
   user?: {
-    id_user: string;
+    id_user: number; // antes: string (uuid)
     alias: string;
     email: string;
     role: {
