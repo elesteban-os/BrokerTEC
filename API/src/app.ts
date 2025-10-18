@@ -7,6 +7,7 @@ import { swaggerSpec, swaggerUiOptions } from './config/swagger';
 import publicRegisterController from './modules/auth/Controllers/public-register.controller';
 import adminRegisterController from './modules/auth/Controllers/admin-register.controller';
 import loginController from './modules/auth/Controllers/login.controller';
+import userUpdatePasswordController from './modules/gestion_usuarios/Controllers/user_update_password.controller';
 
 async function bootstrap() {
   await AppDataSource.initialize();        // conecta TypeORM
@@ -54,6 +55,9 @@ async function bootstrap() {
   
   // rutas del módulo auth - login/logout/refresh
   app.use('/api/auth', loginController);
+
+  // rutas del módulo de gestión de usuarios
+  app.use('/api/users', userUpdatePasswordController);
 
   // error handler centralizado (no repitas try/catch en cada ruta)
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

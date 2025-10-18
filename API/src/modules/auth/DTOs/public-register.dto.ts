@@ -34,7 +34,7 @@ import { IsEmail, IsNotEmpty, IsString, MinLength, MaxLength, IsOptional, IsArra
  *           type: array
  *           items:
  *             type: string
- *           example: ["8888-1234", "2222-5678"]
+ *           example: ["8820-1234", "2222-5678"]
  *       required:
  *         - alias
  *         - email
