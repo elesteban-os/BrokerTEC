@@ -32,7 +32,7 @@ router.get('/wallet',
   JwtAuthGuard.middleware(),
   async (req: any, res: Response) => {
     try {
-      const userId: string = req.user.id_user; // del JWT
+      const userId: string = req.user.id_user;
       const wallet = await walletService.getWalletByUserId(userId);
       return res.json(wallet);
     } catch (error: any) {
@@ -75,7 +75,7 @@ router.post('/wallet/top-up',
   async (req: any, res: Response) => {
     try {
       const userId: string = req.user.id_user;
-      const dto: WalletTopUpDto = (req as any).dto ?? req.body; // usamos dto validado si existe
+      const dto: WalletTopUpDto = req.body;
       const result = await walletService.topUpWallet(userId, dto);
       return res.json(result);
     } catch (error: any) {
@@ -95,3 +95,4 @@ router.post('/wallet/top-up',
 );
 
 export default router;
+

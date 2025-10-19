@@ -11,3 +11,4 @@ export class WalletTopUpDto {
   @IsPositive()
   amount!: number;
 }
+

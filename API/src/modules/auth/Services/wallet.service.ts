@@ -3,12 +3,12 @@ import { AppDataSource } from '../../../config/data-source';
 import { Wallet } from '../../../entities/wallet.entity';
 import { User } from '../../../entities/user.entity';
 import { WalletCategory, WalletTopUpDto } from '../DTOs/wallet.dto';
+import { randomUUID } from 'crypto';
 
 export class WalletService {
   private walletRepository: Repository<Wallet>;
   private userRepository: Repository<User>;
 
-  // Límites diarios por categoría
   private categoryLimits: Record<WalletCategory, number> = {
     JUNIOR: 1000,
     MID: 5000,
@@ -25,10 +25,6 @@ export class WalletService {
     return d.toISOString().slice(0, 10); // YYYY-MM-DD
   }
 
-  /**
-   * Crea una wallet para un usuario TRADER (id_role = 3).
-   * category por defecto: JUNIOR
-   */
   async createWalletForTrader(userId: string, category: WalletCategory = WalletCategory.JUNIOR) {
     const user = await this.userRepository.findOne({
       where: { id_user: userId },
@@ -36,12 +32,10 @@ export class WalletService {
     });
     if (!user) throw new Error('USER_NOT_FOUND');
 
-    // Solo TRADER (ajusta si tu dominio difiere)
     if ((user as any).id_role !== 3 && (user as any).role?.id_role !== 3) {
       return null;
     }
 
-    // Si ya existe, devolverla
     const existing = await this.walletRepository.findOne({
       where: { user: { id_user: userId } },
       relations: ['user'],
@@ -49,6 +43,7 @@ export class WalletService {
     if (existing) return existing;
 
     const wallet = this.walletRepository.create({
+      id_wallet: randomUUID(),
       user,
       balance: 0,
       currency: 'USD',
@@ -61,7 +56,6 @@ export class WalletService {
     return await this.walletRepository.save(wallet);
   }
 
-  /** Consultar wallet por usuario */
   async getWalletByUserId(userId: string) {
     const wallet = await this.walletRepository.findOne({
       where: { user: { id_user: userId } },
@@ -71,7 +65,6 @@ export class WalletService {
     return wallet;
   }
 
-  /** Recarga respetando límite diario por categoría. */
   async topUpWallet(userId: string, dto: WalletTopUpDto) {
     if (!dto || typeof dto.amount !== 'number' || dto.amount <= 0) {
       throw new Error('INVALID_AMOUNT');
@@ -83,7 +76,6 @@ export class WalletService {
     });
     if (!wallet) throw new Error('WALLET_NOT_FOUND');
 
-    // Reset diario si cambió el día
     const today = this.todayISO();
     const last = wallet.last_consumed_date ? wallet.last_consumed_date.toISOString().slice(0, 10) : null;
     if (last !== today) {
@@ -91,9 +83,8 @@ export class WalletService {
       wallet.last_consumed_date = new Date(today);
     }
 
-    // Límite por categoría
     const limitForCategory = this.categoryLimits[wallet.category as WalletCategory] ?? Number(wallet.daily_limit);
-    wallet.daily_limit = limitForCategory; // sincroniza por si cambió categoría
+    wallet.daily_limit = limitForCategory;
 
     const remaining = Number(limitForCategory) - Number(wallet.today_consumed);
     if (dto.amount > remaining) {
@@ -112,8 +103,8 @@ export class WalletService {
         balance: wallet.balance,
         category: wallet.category,
         today_consumed: wallet.today_consumed,
-        daily_limit: wallet.daily_limit
-      }
+        daily_limit: wallet.daily_limit,
+      },
     };
   }
 }

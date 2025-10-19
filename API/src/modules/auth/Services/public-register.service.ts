@@ -64,6 +64,15 @@ export class PublicRegisterService {
 
     // Guardar el usuario
     const savedUser = await this.userRepository.save(newUser);
+
+    // Crear wallet automáticamente solo para TRADER (id_role=3)
+    try {
+      const { WalletService } = await import('./wallet.service');
+      const walletService = new WalletService();
+      await walletService.createWalletForTrader(savedUser.id_user);
+    } catch (e) {
+      console.error('No se pudo crear la wallet del TRADER:', e);
+    }
     
     // Crear wallet automáticamente solo para TRADER
   try {
