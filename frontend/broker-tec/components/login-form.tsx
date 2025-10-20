@@ -8,13 +8,34 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
 export function LoginForm() {
-  const [email, setEmail] = useState("")
+  const [alias, setAlias] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Aquí irá la lógica de autenticación
-    console.log("Login attempt:", { email, password })
+    setError(null)
+    setLoading(true)
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ "alias": alias, "password": password }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.message || "Credenciales inválidas")
+      }
+      const data = await res.json()
+      console.log("Login exitoso", data)
+      // TODO: redirigir (por ejemplo, usando router.push('/dashboard'))
+    } catch (err: any) {
+      setError(err.message || "Error de autenticación")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -37,13 +58,13 @@ export function LoginForm() {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Correo electrónico</Label>
+            <Label htmlFor="username">Nombre de usuario</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="tu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="username"
+              type="text"
+              placeholder="Usuario"
+              value={alias}
+              onChange={(e) => setAlias(e.target.value)}
               required
               className="h-11"
             />
@@ -64,8 +85,8 @@ export function LoginForm() {
 
           
         </div>
-
-        <Button type="submit" className="w-full h-11 text-base font-semibold">
+        {error && <p className="text-sm text-red-500">{error}</p>}
+        <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={loading}>
           Iniciar sesión
         </Button>
       </form>
