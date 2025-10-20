@@ -47,12 +47,12 @@ export class TraderPortfolio {
   costo_promedio!: number;
 
   // Relación Many-to-One: Un registro pertenece a un Usuario
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'id_user' }) 
   user!: User;
   
   // Relación Many-to-One: Un registro se refiere a una Empresa
-  @ManyToOne(() => Company)
+  @ManyToOne(() => Company, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'id_empresa' }) 
   company!: Company;
 }

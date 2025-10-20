@@ -14,7 +14,7 @@ export class PhoneNumberUser {
   phone_number!: string;
 
   // Relación Many-to-One: muchos teléfonos pertenecen a un usuario
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'id_user' })
   user!: User;
 }

@@ -32,7 +32,7 @@ export class TopUp {
   fecha_hora!: Date; 
 
   // Relación Many-to-One: Muchas recargas pertenecen a una Wallet
-  @ManyToOne(() => Wallet, wallet => wallet.topUps)
+  @ManyToOne(() => Wallet, wallet => wallet.topUps, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'id_wallet' }) // Nombre de la columna FK
   wallet!: Wallet;
 }

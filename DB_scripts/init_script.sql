@@ -18,115 +18,90 @@ GO
 USE BrokerTEC;
 GO
 
+-- Se eliminan todas las restricciones de una sola vez
+DECLARE @sql NVARCHAR(MAX) = N'';
+SELECT @sql += N'ALTER TABLE ' 
+    + QUOTENAME(OBJECT_SCHEMA_NAME(parent_object_id)) 
+    + '.' + QUOTENAME(OBJECT_NAME(parent_object_id)) 
+    + ' DROP CONSTRAINT ' + QUOTENAME(name) + ';' 
+FROM sys.foreign_keys;
+EXEC sp_executesql @sql;
+GO
+
+-- 2. Eliminación de tablas en orden seguro (para evitar errores de dependencia al eliminar)
+IF OBJECT_ID('transaccion', 'U') IS NOT NULL DROP TABLE transaccion;
+IF OBJECT_ID('cartera_trader', 'U') IS NOT NULL DROP TABLE cartera_trader;
+IF OBJECT_ID('recarga', 'U') IS NOT NULL DROP TABLE recarga;
+IF OBJECT_ID('wallet', 'U') IS NOT NULL DROP TABLE wallet;
+IF OBJECT_ID('precio_historico', 'U') IS NOT NULL DROP TABLE precio_historico;
+IF OBJECT_ID('empresa', 'U') IS NOT NULL DROP TABLE empresa;
+IF OBJECT_ID('mercado', 'U') IS NOT NULL DROP TABLE mercado;
+IF OBJECT_ID('auditoria', 'U') IS NOT NULL DROP TABLE auditoria;
+IF OBJECT_ID('PhoneNumber_User', 'U') IS NOT NULL DROP TABLE PhoneNumber_User;
+IF OBJECT_ID('usuarios', 'U') IS NOT NULL DROP TABLE usuarios;
+IF OBJECT_ID('roles', 'U') IS NOT NULL DROP TABLE roles;
+GO
+PRINT 'Tablas y restricciones existentes eliminadas.';
+GO
+
 -------------------------------------------------------------------------
 -- PASO 2: CREACIÓN DE TABLAS BASE (DDL) - Sincronizado con .ts
 -------------------------------------------------------------------------
 
 -- 1. Tabla: [roles] (Basado en role.entity.ts)
 CREATE TABLE roles (
-    -- PK: @PrimaryGeneratedColumn() -> INT IDENTITY
     id_role INT IDENTITY(1,1) PRIMARY KEY,
-    -- CORRECCIÓN: Tipo y longitud ajustados a role.entity.ts (VARCHAR(50))
     role_name VARCHAR(50) NOT NULL UNIQUE
 );
-GO
-PRINT 'Tabla [roles] creada exitosamente.';
 GO
 
 -- 2. Tabla: [usuarios] (Basado en user.entity.ts)
 CREATE TABLE usuarios (
-    -- PK: @PrimaryGeneratedColumn('uuid') -> UNIQUEIDENTIFIER
     id_user UNIQUEIDENTIFIER DEFAULT NEWID() PRIMARY KEY,
-    
-    -- Alias y Email (Índices únicos)
     alias VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
-    
-    -- Campos Personales
     nombre VARCHAR(50) NOT NULL,
     apellido1 VARCHAR(50) NOT NULL,
-    apellido2 VARCHAR(50), -- @Column({ nullable: true })
-    
-    -- Seguridad
+    apellido2 VARCHAR(50), 
     password VARCHAR(255) NOT NULL, 
-    
-    -- Datos de Contacto/Ubicación
     country_origin VARCHAR(100) NOT NULL,
-    
-    -- Estado y Roles
-    status BIT NOT NULL DEFAULT 1, -- @Column({ type: 'bit', default: true })
+    status BIT NOT NULL DEFAULT 1, 
     id_role INT NOT NULL,
-    
-    -- JWT Management
-    token_version INT NOT NULL DEFAULT 0,
-
-    -- Foreign Key Constraints
-    -- Relación 1:N con [roles]
-    CONSTRAINT FK_User_Role FOREIGN KEY (id_role) REFERENCES roles(id_role)
+    token_version INT NOT NULL DEFAULT 0
 );
-GO
-PRINT 'Tabla [usuarios] creada exitosamente.';
 GO
 
 -- 3. Tabla: [PhoneNumber_User] (Basado en phone-number-user.entity.ts)
 CREATE TABLE PhoneNumber_User (
-    -- PK: @PrimaryGeneratedColumn('uuid') -> UNIQUEIDENTIFIER
     id_phone UNIQUEIDENTIFIER DEFAULT NEWID() PRIMARY KEY,
-    
-    -- FK: @Column({ type: 'uuid' }) -> UNIQUEIDENTIFIER
-    id_user UNIQUEIDENTIFIER NOT NULL, -- Sincronizado con usuarios.id_user
-    
-    phone_number VARCHAR(20) NOT NULL,
-
-    -- Foreign Key Constraints
-    -- Relación N:1 con [usuarios]
-    CONSTRAINT FK_PhoneNumber_User FOREIGN KEY (id_user) REFERENCES usuarios(id_user)
+    id_user UNIQUEIDENTIFIER NOT NULL,
+    phone_number VARCHAR(20) NOT NULL
 );
-GO
-PRINT 'Tabla [PhoneNumber_User] creada exitosamente.';
 GO
 
 -- 4. Tabla: [auditoria] (Basado en auditoria.entity.ts)
 CREATE TABLE auditoria (
-    -- PK: @PrimaryGeneratedColumn('uuid') -> UNIQUEIDENTIFIER
     id_auditoria UNIQUEIDENTIFIER DEFAULT NEWID() PRIMARY KEY,
-    
-    -- QUIÉN HIZO
-    id_user UNIQUEIDENTIFIER, -- nullable: true, Sincronizado con usuarios.id_user
+    id_user UNIQUEIDENTIFIER,
     user_alias VARCHAR(50), 
     user_role VARCHAR(20), 
-    
-    -- QUÉ HIZO
     accion VARCHAR(50) NOT NULL,
     entidad_afectada VARCHAR(50) NOT NULL,
-    id_registro_afectado UNIQUEIDENTIFIER, -- nullable: true
-    
-    -- ESPECÍFICO PARA TRADING
+    id_registro_afectado UNIQUEIDENTIFIER,
     ticker_empresa VARCHAR(10), 
     cantidad_acciones INT, 
-    precio_operacion DECIMAL(15, 2), -- precision: 15, scale: 2
+    precio_operacion DECIMAL(15, 2),
     monto_operacion DECIMAL(15, 2),
     saldo_anterior DECIMAL(15, 2),
     saldo_nuevo DECIMAL(15, 2),
-    
-    -- INFORMACIÓN ADMINISTRATIVA/LOG
     justificacion TEXT, 
     requiere_confirmacion BIT NOT NULL DEFAULT 0, 
     descripcion TEXT, 
-    fecha_hora DATETIME2 NOT NULL DEFAULT GETDATE(), -- Uso de DATETIME2 para precisión
+    fecha_hora DATETIME2 NOT NULL DEFAULT GETDATE(),
     exitosa BIT NOT NULL DEFAULT 1, 
-    mensaje_error TEXT, 
-    
-    -- Foreign Key Constraints
-    CONSTRAINT FK_Auditoria_User FOREIGN KEY (id_user) REFERENCES usuarios(id_user)
+    mensaje_error TEXT
 );
 GO
-PRINT 'Tabla [auditoria] creada exitosamente.';
-GO
-
--------------------------------------------------------------------------
--- PASO 3: TABLAS FALTANTES (DDL) - Claves Foráneas de usuario corregidas
--------------------------------------------------------------------------
 
 -- 5. Tabla: [mercado]
 CREATE TABLE mercado (
@@ -135,8 +110,6 @@ CREATE TABLE mercado (
     estado NVARCHAR(15) NOT NULL,
     moneda NVARCHAR(5) NOT NULL
 );
-GO
-PRINT 'Tabla [mercado] creada exitosamente.';
 GO
 
 -- 6. Tabla: [empresa]
@@ -148,13 +121,8 @@ CREATE TABLE empresa (
     acciones_disponibles BIGINT NOT NULL CHECK (acciones_disponibles >= 0),
     capital_actual DECIMAL(10, 2) NOT NULL,
     estado NVARCHAR(15) NOT NULL CHECK (estado IN ('Listed', 'Delisted')),
-    justificacion_delistar NVARCHAR(35),
-
-    -- Foreign Key Constraints
-    CONSTRAINT FK_Company_Market FOREIGN KEY (id_mercado) REFERENCES mercado(id_mercado) 
+    justificacion_delistar NVARCHAR(35)
 );
-GO
-PRINT 'Tabla [empresa] creada exitosamente.';
 GO
 
 -- 7. Tabla: [precio_historico]
@@ -163,35 +131,19 @@ CREATE TABLE precio_historico (
     id_empresa INT NOT NULL,
     precio DECIMAL(10, 4) NOT NULL CHECK (precio >= 0),
     fecha_hora DATETIME NOT NULL DEFAULT GETDATE(),
-
-    -- Foreign Key Constraints
-    CONSTRAINT FK_PriceHistory_Company FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa),
-
-    -- Restricción para que no haya duplicados en (Company_id, PH_timestamp)
     CONSTRAINT UQ_Company_PriceTimestamp UNIQUE (id_empresa, fecha_hora)
 );
-GO
-PRINT 'Tabla [precio_historico] creada exitosamente.';
 GO
 
 -- 8. Tabla: [wallet]
 CREATE TABLE wallet (
     id_wallet INT IDENTITY(1,1) PRIMARY KEY,
-    -- CRÍTICO: id_user debe ser UNIQUEIDENTIFIER
     id_user UNIQUEIDENTIFIER NOT NULL UNIQUE, 
     saldo DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-    -- Nota: 'Category' en el CHECK debe coincidir con los valores permitidos (Junior, Mid, Senior)
     categoria NVARCHAR(50) NOT NULL CHECK (categoria IN ('Junior', 'Mid', 'Senior')), 
     limite_diario DECIMAL(10, 2) NOT NULL,
-    consumo_diario DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-
-    -- Foreign Key Constraints
-    -- Relación 1:1 con [USER]
-    CONSTRAINT FK_Wallet_User FOREIGN KEY (id_user) REFERENCES usuarios(id_user) 
-        ON DELETE CASCADE ON UPDATE CASCADE
+    consumo_diario DECIMAL(10, 2) NOT NULL DEFAULT 0.00
 );
-GO
-PRINT 'Tabla [wallet] creada exitosamente.';
 GO
 
 -- 9. Tabla: [recarga]
@@ -199,36 +151,19 @@ CREATE TABLE recarga (
     id_recarga INT IDENTITY(1,1) PRIMARY KEY,
     id_wallet INT NOT NULL,
     monto DECIMAL(10, 2) NOT NULL CHECK (monto > 0),
-    fecha_hora DATETIME NOT NULL DEFAULT GETDATE(),
-
-    -- Foreign Key Constraints
-    -- Relación N:1 con [WALLET]
-    CONSTRAINT FK_TopUp_Wallet FOREIGN KEY (id_wallet) REFERENCES wallet(id_wallet) 
+    fecha_hora DATETIME NOT NULL DEFAULT GETDATE()
 );
-GO
-PRINT 'Tabla [recarga] creada exitosamente.';
 GO
 
 -- 10. Tabla: [cartera_trader]
 CREATE TABLE cartera_trader (
     id_cartera_trader INT IDENTITY(1,1) PRIMARY KEY,
-    -- CRÍTICO: id_user debe ser UNIQUEIDENTIFIER
     id_user UNIQUEIDENTIFIER NOT NULL, 
     id_empresa INT NOT NULL,
     cantidad_acciones INT NOT NULL CHECK (cantidad_acciones >= 0),
     costo_promedio DECIMAL(10, 2) NOT NULL CHECK (costo_promedio >= 0),
-
-    -- Foreign Key Constraints
-    -- Relación N:1 con [USER]
-    CONSTRAINT FK_TP_User FOREIGN KEY (id_user) REFERENCES usuarios(id_user)
-    -- Relación N:1 con [COMPANY]
-    CONSTRAINT FK_TP_Company FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa),
-
-    -- Restricción para que no haya duplicados en (User_id, Company_id)
     CONSTRAINT UQ_User_Company UNIQUE (id_user, id_empresa)
 );
-GO
-PRINT 'Tabla [cartera_trader] creada exitosamente.';
 GO
 
 -- 11. Tabla: [transaccion]
@@ -240,16 +175,60 @@ CREATE TABLE transaccion (
     tipo NVARCHAR(50) NOT NULL CHECK (tipo IN ('Buy', 'Sell')),
     cantidad INT NOT NULL,
     precio DECIMAL(10, 2) NOT NULL CHECK (precio >= 0),
-    fecha_hora DATETIME NOT NULL DEFAULT GETDATE(),
-
-    -- Foreign Key Constraints
-    -- Relación N:1 con [USER]
-    CONSTRAINT FK_Transaction_User FOREIGN KEY (id_user) REFERENCES usuarios(id_user),
-    -- Relación N:1 con [COMPANY]
-    CONSTRAINT FK_Transaction_Company FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa)
+    fecha_hora DATETIME NOT NULL DEFAULT GETDATE()
 );
 GO
-PRINT 'Tabla [transaccion] creada exitosamente.';
+
+-------------------------------------------------------------------------
+-- PASO 4: AÑADIR CLAVES FORÁNEAS (FKs) CON ALTER TABLE Y CASCADE
+-------------------------------------------------------------------------
+
+-- 1. Tablas principales de USUARIOS
+ALTER TABLE usuarios
+ADD CONSTRAINT FK_User_Role FOREIGN KEY (id_role) REFERENCES roles(id_role)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE PhoneNumber_User
+ADD CONSTRAINT FK_PhoneNumber_User FOREIGN KEY (id_user) REFERENCES usuarios(id_user)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- 2. Tablas AUDITORÍA y LOGS
+ALTER TABLE auditoria
+ADD CONSTRAINT FK_Auditoria_User FOREIGN KEY (id_user) REFERENCES usuarios(id_user); 
+-- Sin CASCADE: la auditoría es un registro histórico que debe persistir.
+
+-- 3. Tablas de MERCADO y EMPRESA
+ALTER TABLE empresa
+ADD CONSTRAINT FK_Company_Market FOREIGN KEY (id_mercado) REFERENCES mercado(id_mercado) 
+    ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE precio_historico
+ADD CONSTRAINT FK_PriceHistory_Company FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- 4. Tablas de WALLET y RECARGAS
+ALTER TABLE wallet
+ADD CONSTRAINT FK_Wallet_User FOREIGN KEY (id_user) REFERENCES usuarios(id_user) 
+    ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE recarga
+ADD CONSTRAINT FK_TopUp_Wallet FOREIGN KEY (id_wallet) REFERENCES wallet(id_wallet) 
+    ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- 5. Tablas de OPERACIONES
+ALTER TABLE cartera_trader
+ADD CONSTRAINT FK_TP_User FOREIGN KEY (id_user) REFERENCES usuarios(id_user)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE cartera_trader
+ADD CONSTRAINT FK_TP_Company FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE transaccion
+ADD CONSTRAINT FK_Transaction_User FOREIGN KEY (id_user) REFERENCES usuarios(id_user)
+    ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE transaccion
+ADD CONSTRAINT FK_Transaction_Company FOREIGN KEY (id_empresa) REFERENCES empresa(id_empresa)
+    ON DELETE CASCADE ON UPDATE CASCADE;
 GO
 
 -------------------------------------------------------------------------

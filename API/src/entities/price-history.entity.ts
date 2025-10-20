@@ -35,7 +35,7 @@ export class PriceHistory {
   fecha_hora!: Date; // Corresponde a DATETIME NOT NULL DEFAULT GETDATE()
 
   // Relación Many-to-One: Muchos registros de historial pertenecen a una empresa
-  @ManyToOne(() => Company)
+  @ManyToOne(() => Company, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'id_empresa' }) // Nombre de la columna FK
   company!: Company;
 }

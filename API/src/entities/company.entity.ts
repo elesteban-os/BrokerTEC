@@ -40,7 +40,7 @@ export class Company {
     @Column({ type: 'varchar', length: 35, nullable: true })
     justificacion_delistar?: string; // Justification for delisting, if applicable
 
-    @ManyToOne(() => Market)
+    @ManyToOne(() => Market, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
     @JoinColumn({ name: 'id_mercado' })
     market!: Market; // Relación muchos a uno con mercado
 

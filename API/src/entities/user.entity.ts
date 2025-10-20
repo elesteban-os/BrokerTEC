@@ -41,7 +41,7 @@ export class User {
   token_version!: number; // Para invalidar tokens JWT incrementando la versión
 
   // Relación muchos a uno: muchos usuarios pueden tener un rol
-  @ManyToOne(() => Role)
+  @ManyToOne(() => Role, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'id_role' })
   role!: Role;
 

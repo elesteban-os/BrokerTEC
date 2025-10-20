@@ -67,7 +67,7 @@ export class Auditoria {
   mensaje_error!: string | null; // Mensaje de error si falló
 
   // ===== RELACIÓN =====
-  @ManyToOne(() => User, { nullable: true })
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'id_user' })
   user!: User | null;
 }
