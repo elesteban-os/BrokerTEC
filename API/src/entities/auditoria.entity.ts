@@ -24,7 +24,7 @@ export class Auditoria {
   @Column({ type: 'varchar', length: 50 })
   entidad_afectada!: string; // usuarios, empresas, mercados, wallet, ordenes
 
-  @Column({ type: 'uuid', nullable: true })
+  @Column({ type: 'varchar', length: 50, nullable: true }) // <-- Cambio Clave (conflicto de tipos)
   id_registro_afectado!: string | null; // ID del registro modificado
 
   // ===== ESPECÍFICO PARA TRADING =====

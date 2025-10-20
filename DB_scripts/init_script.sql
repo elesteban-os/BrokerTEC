@@ -87,7 +87,7 @@ CREATE TABLE auditoria (
     user_role VARCHAR(20), 
     accion VARCHAR(50) NOT NULL,
     entidad_afectada VARCHAR(50) NOT NULL,
-    id_registro_afectado UNIQUEIDENTIFIER,
+    id_registro_afectado NVARCHAR(50),
     ticker_empresa VARCHAR(10), 
     cantidad_acciones INT, 
     precio_operacion DECIMAL(15, 2),
