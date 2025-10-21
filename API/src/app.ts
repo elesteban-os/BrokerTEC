@@ -7,6 +7,8 @@ import { swaggerSpec, swaggerUiOptions } from './config/swagger';
 import publicRegisterController from './modules/auth/Controllers/public-register.controller';
 import adminRegisterController from './modules/auth/Controllers/admin-register.controller';
 import loginController from './modules/auth/Controllers/login.controller';
+import getUserController from './modules/gestion_usuarios/Controllers/get_user.controller';
+import editUserController from './modules/gestion_usuarios/Controllers/edit_user.controller';
 import userUpdatePasswordController from './modules/gestion_usuarios/Controllers/user_update_password.controller';
 import deleteUserController from './modules/gestion_usuarios/Controllers/delete_user.controller';
 
@@ -46,8 +48,6 @@ async function bootstrap() {
   // healthcheck
   app.get('/health', (_req, res) => res.json({ ok: true }));
 
-
-
   // rutas del módulo auth - registro público
   app.use('/api/auth', publicRegisterController);
   
@@ -57,9 +57,11 @@ async function bootstrap() {
   // rutas del módulo auth - login/logout/refresh
   app.use('/api/auth', loginController);
 
-  // rutas del modulo de gestion de usuarios
+  // rutas del módulo de gestión de usuarios
   app.use('/api/users', userUpdatePasswordController);
   app.use('/api/users', deleteUserController);
+  app.use('/api/users', getUserController);
+  app.use('/api/users', editUserController);
 
   // error handler centralizado (no repitas try/catch en cada ruta)
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -76,4 +78,3 @@ bootstrap().catch((err) => {
   console.error('Failed to start:', err);
   process.exit(1);
 });
-
