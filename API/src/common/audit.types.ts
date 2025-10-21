@@ -12,7 +12,7 @@ export enum TipoAccionAuditoria {
   USER_DELETE = 'USER_DELETE',
   USER_DISABLE = 'USER_DISABLE',
   USER_ENABLE = 'USER_ENABLE',
-  USER_ROLE_CHANGE = 'USER_ROLE_CHANGE',
+  USER_ROLE_CHANGE = 'USER_ROLE_CHANGE',  //probablemente no se use
   CAMBIO_CATEGORIA = 'CAMBIO_CATEGORIA', // junior/mid/senior
 
   // === OPERACIONES DE TRADING ===
@@ -27,9 +27,12 @@ export enum TipoAccionAuditoria {
   EMPRESA_CREATE = 'EMPRESA_CREATE',
   EMPRESA_UPDATE = 'EMPRESA_UPDATE',
   EMPRESA_DELETE = 'EMPRESA_DELETE',
-  DELISTING = 'DELISTING', // Eliminación con liquidación automática
+  DELISTING = 'DELISTING', // Eliminación con liquidación automática (debe usarse un stored procedure o trigger)
   
   // === GESTIÓN DE MERCADOS ===
+  MERCADO_CREATE = 'MERCADO_CREATE',
+  MERCADO_UPDATE = 'MERCADO_UPDATE',
+  MERCADO_DELETE = 'MERCADO_DELETE',
   HABILITAR_MERCADO = 'HABILITAR_MERCADO',
   DESHABILITAR_MERCADO = 'DESHABILITAR_MERCADO',
   
