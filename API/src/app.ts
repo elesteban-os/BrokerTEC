@@ -1,4 +1,4 @@
-import 'reflect-metadata'; // siempre primero para decorators
+﻿import 'reflect-metadata'; // siempre primero para decorators
 import express from 'express';
 import swaggerUi from 'swagger-ui-express';
 import { AppDataSource } from './config/data-source';
@@ -8,6 +8,7 @@ import publicRegisterController from './modules/auth/Controllers/public-register
 import adminRegisterController from './modules/auth/Controllers/admin-register.controller';
 import loginController from './modules/auth/Controllers/login.controller';
 import userUpdatePasswordController from './modules/gestion_usuarios/Controllers/user_update_password.controller';
+import deleteUserController from './modules/gestion_usuarios/Controllers/delete_user.controller';
 
 async function bootstrap() {
   await AppDataSource.initialize();        // conecta TypeORM
@@ -56,8 +57,9 @@ async function bootstrap() {
   // rutas del módulo auth - login/logout/refresh
   app.use('/api/auth', loginController);
 
-  // rutas del módulo de gestión de usuarios
+  // rutas del modulo de gestion de usuarios
   app.use('/api/users', userUpdatePasswordController);
+  app.use('/api/users', deleteUserController);
 
   // error handler centralizado (no repitas try/catch en cada ruta)
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
@@ -74,3 +76,4 @@ bootstrap().catch((err) => {
   console.error('Failed to start:', err);
   process.exit(1);
 });
+
