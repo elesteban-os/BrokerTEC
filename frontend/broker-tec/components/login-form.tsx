@@ -31,6 +31,18 @@ export function LoginForm() {
       const data = await res.json()
       console.log("Login exitoso", data)
       // TODO: redirigir (por ejemplo, usando router.push('/dashboard'))
+      // Guardar datos de sesión en localStorage
+      localStorage.setItem("user", JSON.stringify(data.user))
+      localStorage.setItem("token", data.access_token)
+
+      const role = data.user?.role?.role_name
+      console.log("User role:", role)
+      if (role === "ADMINISTRADOR") {
+        window.location.href = "/admin"
+      }
+
+      const user = JSON.parse(localStorage.getItem("user") || "{}")
+      console.log("User data:", user)
     } catch (err: any) {
       setError(err.message || "Error de autenticación")
     } finally {
