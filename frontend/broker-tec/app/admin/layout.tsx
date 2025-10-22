@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { Building2, DollarSign, LayoutDashboard, LogOut, Users } from "lucide-react"
+import { Building2, DollarSign, LayoutDashboard, LogOut, UserCircle, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -31,6 +31,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       href: "/admin/usuarios",
       label: "Usuarios y Cuentas",
       icon: Users,
+    },
+    {
+      href: "/admin/perfil",
+      label: "Perfil Personal",
+      icon: UserCircle,
     },
   ]
 

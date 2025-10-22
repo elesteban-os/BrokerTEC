@@ -64,6 +64,17 @@ export interface PriceHistory {
   loadMethod: "manual" | "api"
 }
 
+export interface UserProfile {
+  id: string
+  name: string
+  alias: string
+  email: string
+  address: string
+  country: string
+  phones: string[]
+  passwordHash: string
+}
+
 interface DataContextType {
   markets: Market[]
   companies: Company[]
@@ -71,6 +82,9 @@ interface DataContextType {
   transactions: Transaction[]
   users: User[]
   priceHistory: PriceHistory[]
+  currentProfile: UserProfile
+  updateProfile: (profile: Partial<UserProfile>) => Promise<{ success: boolean; message: string }>
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>
   addMarket: (market: Omit<Market, "id" | "createdAt">) => void
   updateMarket: (id: string, market: Partial<Market>) => void
   deleteMarket: (id: string) => void
@@ -337,6 +351,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     },
   ])
 
+  const [currentProfile, setCurrentProfile] = useState<UserProfile>({
+    id: "admin1",
+    name: "Administrador Principal",
+    alias: "AdminBroker",
+    email: "admin@brokertec.com",
+    address: "Av. Tecnológico 123, Col. Centro",
+    country: "México",
+    phones: ["+52 555 123 4567", "+52 555 987 6543"],
+    passwordHash: "hashed_password_here", // In real app, this would be properly hashed
+  })
+
   const addMarket = (market: Omit<Market, "id" | "createdAt">) => {
     const newMarket: Market = {
       ...market,
@@ -533,6 +558,49 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const updateProfile = async (profile: Partial<UserProfile>): Promise<{ success: boolean; message: string }> => {
+    // Validate email format
+    if (profile.email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(profile.email)) {
+        return { success: false, message: "email inválido" }
+      }
+    }
+
+    // Validate unique alias
+    if (profile.alias && profile.alias !== currentProfile.alias) {
+      const aliasExists = users.some((u) => u.alias === profile.alias)
+      if (aliasExists) {
+        return { success: false, message: "alias duplicado" }
+      }
+    }
+
+    // Update profile
+    setCurrentProfile({ ...currentProfile, ...profile })
+    return { success: true, message: "Perfil actualizado exitosamente" }
+  }
+
+  const changePassword = async (
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; message: string }> => {
+    // In a real app, you would verify the current password against the hash
+    // For demo purposes, we'll just validate the new password strength
+
+    // Validate password strength (at least 8 chars, 1 uppercase, 1 lowercase, 1 number)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+    if (!passwordRegex.test(newPassword)) {
+      return {
+        success: false,
+        message: "contraseña débil",
+      }
+    }
+
+    // Update password hash (in real app, this would be properly hashed)
+    setCurrentProfile({ ...currentProfile, passwordHash: `hashed_${newPassword}` })
+    return { success: true, message: "Contraseña actualizada exitosamente" }
+  }
+
   return (
     <DataContext.Provider
       value={{
@@ -542,6 +610,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         transactions,
         users,
         priceHistory,
+        currentProfile,
+        updateProfile,
+        changePassword,
         addMarket,
         updateMarket,
         deleteMarket,
