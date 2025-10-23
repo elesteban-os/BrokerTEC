@@ -15,6 +15,8 @@ export default function PerfilPage() {
   // Profile form state
   const [profileForm, setProfileForm] = useState({
     name: currentProfile.name,
+    surname1: currentProfile.surname1,
+    surname2: currentProfile.surname2,
     alias: currentProfile.alias,
     email: currentProfile.email,
     address: currentProfile.address,
@@ -90,6 +92,12 @@ export default function PerfilPage() {
         newPassword: "",
         confirmPassword: "",
       })
+
+      // Back to login
+      setTimeout(() => {
+        window.location.href = "/"
+      }, 1000)
+
     } else {
       setPasswordMessage({ type: "error", text: result.message })
     }
@@ -111,7 +119,7 @@ export default function PerfilPage() {
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">Nombre Completo</Label>
+              <Label htmlFor="name">Nombre</Label>
               <Input
                 id="name"
                 value={profileForm.name}
@@ -121,7 +129,27 @@ export default function PerfilPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="alias">Alias (único)</Label>
+              <Label htmlFor="surname1">Apellido 1</Label>
+              <Input
+                id="surname1"
+                value={profileForm.surname1}
+                onChange={(e) => setProfileForm({ ...profileForm, surname1: e.target.value })}
+                placeholder="Ingrese su primer apellido"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="surname2">Apellido 2</Label>
+              <Input
+                id="surname2"
+                value={profileForm.surname2}
+                onChange={(e) => setProfileForm({ ...profileForm, surname2: e.target.value })}
+                placeholder="Ingrese su segundo apellido"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="alias">Alias</Label>
               <Input
                 id="alias"
                 value={profileForm.alias}
@@ -148,16 +176,6 @@ export default function PerfilPage() {
                 value={profileForm.country}
                 onChange={(e) => setProfileForm({ ...profileForm, country: e.target.value })}
                 placeholder="México"
-              />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="address">Dirección</Label>
-              <Input
-                id="address"
-                value={profileForm.address}
-                onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value })}
-                placeholder="Calle, número, colonia"
               />
             </div>
           </div>
@@ -226,9 +244,6 @@ export default function PerfilPage() {
       <Card>
         <CardHeader>
           <CardTitle>Cambiar Contraseña</CardTitle>
-          <CardDescription>
-            La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas y números
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-4">

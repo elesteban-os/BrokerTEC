@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 
 export interface Market {
   id: string
@@ -67,6 +67,8 @@ export interface PriceHistory {
 export interface UserProfile {
   id: string
   name: string
+  surname1: string
+  surname2: string
   alias: string
   email: string
   address: string
@@ -351,16 +353,91 @@ export function DataProvider({ children }: { children: ReactNode }) {
     },
   ])
 
+
   const [currentProfile, setCurrentProfile] = useState<UserProfile>({
-    id: "admin1",
-    name: "Administrador Principal",
-    alias: "AdminBroker",
-    email: "admin@brokertec.com",
-    address: "Av. Tecnológico 123, Col. Centro",
-    country: "México",
-    phones: ["+52 555 123 4567", "+52 555 987 6543"],
-    passwordHash: "hashed_password_here", // In real app, this would be properly hashed
+    
+    id: "",
+    name: "",
+    surname1: "",
+    surname2: "",
+    alias: "",
+    email: "",
+    address: "",
+    country: "",
+    phones: [],
+    passwordHash: "", // In real app, this would be properly hashed
   })
+
+  // Para obtener el perfil desde localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("user")
+
+      if (raw) {
+        const JSONdata = JSON.parse(raw)
+        const niceData = {
+          id: JSONdata.id_user || "",
+          name: JSONdata.nombre || "",
+          surname1: "",
+          surname2: "",
+          alias: JSONdata.alias || "",
+          email: JSONdata.email || "",
+          address: "",
+          country: "",
+          phones: [],
+          passwordHash: ""
+        }
+        setCurrentProfile(niceData)
+      }
+    } catch {
+      /* ignore */
+    }
+
+    // Obtener el resto de datos en la API
+    ;(async () => {
+      try {
+        // Obtener token de auth
+        const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+        const refreshToken = typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null
+        console.log("Using token:", token)
+        console.log("Using refresh token:", refreshToken)
+        
+        const res = await fetch("/api/users/me", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+        })
+        if (!res.ok) {
+          throw new Error("Failed to fetch profile data")
+        }
+        const data = await res.json()
+        console.log("Fetched profile data:", data)
+      
+        const niceData = {
+          id: data.id_user || "",
+          name: data.nombre || "",
+          surname1: data.apellido1 || "",
+          surname2: data.apellido2 || "",
+          alias: data.alias || "",
+          email: data.email || "",
+          address: "",
+          country: data.country_origin || "",
+          phones: [],
+          passwordHash: ""
+        }
+        setCurrentProfile(niceData)
+
+      } catch (error) {
+        console.error("Error fetching profile data:", error)
+      }
+    })()
+  }, [])
+
+
+
 
   const addMarket = (market: Omit<Market, "id" | "createdAt">) => {
     const newMarket: Market = {
@@ -568,16 +645,66 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     // Validate unique alias
-    if (profile.alias && profile.alias !== currentProfile.alias) {
-      const aliasExists = users.some((u) => u.alias === profile.alias)
-      if (aliasExists) {
-        return { success: false, message: "alias duplicado" }
+    // if (profile.alias && profile.alias !== currentProfile.alias) {
+    //   const aliasExists = users.some((u) => u.alias === profile.alias)
+    //   if (aliasExists) {
+    //     return { success: false, message: "alias duplicado" }
+    //   }
+    // }
+
+    // Realizar put en la API para actualizar el perfil
+    try {
+      // Obtener token de auth
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+      console.log("Using token for profile update:", token)
+
+      // Realizar JSON para el body
+      const bodyJSON = {
+        "alias": profile.alias,
+        "email": profile.email,
+        "nombre": profile.name,
+        "apellido1": profile.surname1,
+        "apellido2": profile.surname2,
+        "country_origin": profile.country
       }
+
+      const res = await fetch("/api/users/me", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify(bodyJSON),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        const dataStatus = res.status
+        if (dataStatus === 400) {
+          throw new Error(data?.message || "Error: Datos inválidos")
+        }
+        else if (dataStatus === 401) {
+          throw new Error(data?.message || "Error: No autenticado")
+        }
+        else if (dataStatus === 404) {
+          throw new Error(data?.message || "Error: Usuario no encontrado")
+        }
+        else if (dataStatus === 409) {
+          throw new Error(data?.message || "Error: Alias o email ya existen")
+        } else {
+          throw new Error(data?.message || "Fallo al actualizar el perfil")
+        }
+      }
+      const data = await res.json()
+      console.log("Profile updated successfully:", data)
+      // Update profile
+      setCurrentProfile({ ...currentProfile, ...profile })
+      return { success: true, message: "Perfil actualizado exitosamente" }
+    } catch (error: any) {
+      return { success: false, message: error.message || "Error al actualizar el perfil" }
     }
 
-    // Update profile
-    setCurrentProfile({ ...currentProfile, ...profile })
-    return { success: true, message: "Perfil actualizado exitosamente" }
+    
   }
 
   const changePassword = async (
@@ -587,18 +714,55 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // In a real app, you would verify the current password against the hash
     // For demo purposes, we'll just validate the new password strength
 
-    // Validate password strength (at least 8 chars, 1 uppercase, 1 lowercase, 1 number)
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/
+    // Validate password strength (at least 6 chars)
+    const passwordRegex = /^.{6,}$/
     if (!passwordRegex.test(newPassword)) {
       return {
         success: false,
-        message: "contraseña débil",
+        message: "Contraseña débil",
       }
     }
 
-    // Update password hash (in real app, this would be properly hashed)
-    setCurrentProfile({ ...currentProfile, passwordHash: `hashed_${newPassword}` })
-    return { success: true, message: "Contraseña actualizada exitosamente" }
+    // Cambiar contraseña en la API
+    try {
+      // Obtener token de auth
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+      console.log("Using token for password change:", token)
+
+      const bodyJSON = {
+        "current_password": currentPassword,
+        "new_password": newPassword
+      }
+
+      const res = await fetch("/api/users/me/password", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify(bodyJSON),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        const dataStatus = res.status
+
+        console.log("Password change response status:", data)
+        throw new Error(data?.message || "Fallo al cambiar la contraseña")
+                
+        
+      }
+      const data = await res.json()
+      console.log("Password changed successfully:", data)
+      // Update profile passwordHash (for demo purposes)
+      setCurrentProfile({ ...currentProfile, passwordHash: `hashed_${newPassword}` })
+
+      return { success: true, message: "Contraseña actualizada exitosamente" }
+    } catch (error: any) {
+      return { success: false, message: error.message || "Error al cambiar la contraseña" }
+    }
+
+    
   }
 
   return (

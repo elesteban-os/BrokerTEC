@@ -33,7 +33,8 @@ export function LoginForm() {
       // TODO: redirigir (por ejemplo, usando router.push('/dashboard'))
       // Guardar datos de sesión en localStorage
       localStorage.setItem("user", JSON.stringify(data.user))
-      localStorage.setItem("token", data.access_token)
+      localStorage.setItem("authToken", data.access_token)
+      localStorage.setItem("refreshToken", data.refresh_token)
 
       const role = data.user?.role?.role_name
       console.log("User role:", role)
