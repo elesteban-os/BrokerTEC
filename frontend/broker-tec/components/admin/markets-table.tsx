@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Edit, Trash2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge" // added Badge import for enabled status
 
 interface MarketsTableProps {
   markets: Market[]
@@ -45,7 +46,7 @@ export function MarketsTable({ markets, onEdit }: MarketsTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Nombre</TableHead>
-            <TableHead>Moneda</TableHead>
+            <TableHead>Estado</TableHead>
             <TableHead>Fecha de Creación</TableHead>
             <TableHead className="text-right">Acciones</TableHead>
           </TableRow>
@@ -54,7 +55,11 @@ export function MarketsTable({ markets, onEdit }: MarketsTableProps) {
           {markets.map((market) => (
             <TableRow key={market.id}>
               <TableCell className="font-medium">{market.name}</TableCell>
-              <TableCell>{market.currency}</TableCell>
+              <TableCell>
+                <Badge variant={market.enabled ? "default" : "secondary"}>
+                  {market.enabled ? "Habilitado" : "Deshabilitado"}
+                </Badge>
+              </TableCell>
               <TableCell>{market.createdAt.toLocaleDateString()}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">

@@ -6,6 +6,7 @@ export interface Market {
   id: string
   name: string
   currency: string
+  enabled: boolean
   createdAt: Date
 }
 
@@ -111,8 +112,8 @@ interface DataContextType {
   currentProfile: UserProfile
   updateProfile: (profile: Partial<UserProfile>) => Promise<{ success: boolean; message: string }>
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>
-  addMarket: (market: Omit<Market, "id" | "createdAt">) => void
-  updateMarket: (id: string, market: Partial<Market>) => void
+  addMarket: (market: Omit<Market, "id" | "createdAt">) => Promise<{ success: boolean; message: string }>
+  updateMarket: (id: string, market: Partial<Market>) => Promise<{ success: boolean; message: string }>
   deleteMarket: (id: string) => void
   addCompany: (company: Omit<Company, "id" | "createdAt">) => void
   updateCompany: (id: string, company: Partial<Company>) => void
@@ -137,12 +138,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       id: "1",
       name: "NASDAQ",
       currency: "USD",
+      enabled: true,
       createdAt: new Date("2024-01-01"),
     },
     {
       id: "2",
       name: "NYSE",
       currency: "USD",
+      enabled: false,
       createdAt: new Date("2024-01-01"),
     },
   ])
@@ -505,17 +508,66 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
 
 
-  const addMarket = (market: Omit<Market, "id" | "createdAt">) => {
+  const addMarket = async (
+    market: Omit<Market, "id" | "createdAt">
+  ): Promise<{ success: boolean; message: string }> => {
     const newMarket: Market = {
       ...market,
       id: Date.now().toString(),
       createdAt: new Date(),
+      // Ensure new markets are enabled by default
+      enabled: true,
     }
-    setMarkets([...markets, newMarket])
-  }
 
-  const updateMarket = (id: string, market: Partial<Market>) => {
-    setMarkets(markets.map((m) => (m.id === id ? { ...m, ...market } : m)))
+    // Obtener token de auth
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+
+    // Crear JSON que API espera
+    const bodyJSON = {
+      "nombre": newMarket.name,
+    }
+
+    // Llamar a la API para crear el mercado en el backend
+    try {
+      const response = await fetch("/api/admin/mercados", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bodyJSON),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setMarkets([...markets, newMarket])
+        return { success: true, message: data?.message || "Mercado creado exitosamente" }
+      } else {
+        throw new Error(data?.message || "Fallo al crear mercado")
+      }
+    } catch (error) {
+      console.error("Error creating market:", error)
+      const err = error as Error
+      return { success: false, message: err?.message || "Fallo al crear mercado" }
+    }
+    // fallback
+    return { success: false, message: "Fallo al crear mercado" }
+  }
+      
+
+  const updateMarket = async (
+    id: string,
+    market: Partial<Market>,
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      setMarkets(markets.map((m) => (m.id === id ? { ...m, ...market } : m)))
+      return { success: true, message: "Mercado actualizado correctamente" }
+    } catch (error) {
+      console.error("Error updating market:", error)
+      const err = error as Error
+      return { success: false, message: err?.message || "Fallo al actualizar mercado" }
+    }
   }
 
   const deleteMarket = (id: string) => {

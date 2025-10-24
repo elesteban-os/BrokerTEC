@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
 import { useData, type Market } from "@/lib/data-context"
 import {
@@ -15,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 
 interface MarketDialogProps {
   open: boolean
@@ -25,55 +25,76 @@ interface MarketDialogProps {
 export function MarketDialog({ open, onClose, market }: MarketDialogProps) {
   const { addMarket, updateMarket } = useData()
   const [name, setName] = useState("")
-  const [currency, setCurrency] = useState("USD")
+  const [enabled, setEnabled] = useState(true)
+  const [resultOpen, setResultOpen] = useState(false)
+  const [resultSuccess, setResultSuccess] = useState<boolean | null>(null)
+  const [resultMessage, setResultMessage] = useState("")
 
   useEffect(() => {
     if (market) {
       setName(market.name)
-      setCurrency(market.currency)
+      setEnabled(market.enabled)
     } else {
       setName("")
-      setCurrency("USD")
+      setEnabled(true)
     }
   }, [market, open])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (market) {
-      updateMarket(market.id, { name, currency })
+      const res = await updateMarket(market.id, { enabled })
+      setResultSuccess(res.success)
+      setResultMessage(res.message)
+      setResultOpen(true)
+      if (res.success) onClose()
     } else {
-      addMarket({ name, currency })
+      const res = await addMarket({ name, currency: "USD", enabled: true })
+      setResultSuccess(res.success)
+      setResultMessage(res.message)
+      setResultOpen(true)
+      if (res.success) onClose()
     }
-
-    onClose()
   }
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <>
+      <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{market ? "Editar Mercado" : "Nuevo Mercado"}</DialogTitle>
           <DialogDescription>
-            {market ? "Actualiza la información del mercado" : "Crea un nuevo mercado para listar empresas"}
+            {market ? "Habilita o deshabilita el mercado" : "Crea un nuevo mercado para listar empresas"}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nombre</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="NASDAQ" required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="currency">Moneda</Label>
               <Input
-                id="currency"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                placeholder="USD"
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="NASDAQ"
                 required
+                disabled={!!market}
               />
+              {market && <p className="text-sm text-muted-foreground">El nombre del mercado no puede ser modificado</p>}
             </div>
+            {market ? (
+              <div className="flex items-center justify-between space-x-2">
+                <Label htmlFor="enabled" className="flex flex-col space-y-1">
+                  <span>Estado del Mercado</span>
+                  <span className="text-sm font-normal text-muted-foreground">
+                    {enabled ? "El mercado está habilitado" : "El mercado está deshabilitado"}
+                  </span>
+                </Label>
+                <Switch id="enabled" checked={enabled} onCheckedChange={setEnabled} />
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">El mercado será habilitado por defecto al crearlo.</div>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
@@ -83,6 +104,20 @@ export function MarketDialog({ open, onClose, market }: MarketDialogProps) {
           </DialogFooter>
         </form>
       </DialogContent>
-    </Dialog>
+      </Dialog>
+
+      {/* Result dialog */}
+      <Dialog open={resultOpen} onOpenChange={setResultOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{resultSuccess ? "Éxito" : "Error"}</DialogTitle>
+          <DialogDescription>{resultMessage}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button onClick={() => setResultOpen(false)}>Cerrar</Button>
+        </DialogFooter>
+      </DialogContent>
+      </Dialog>
+    </>
   )
 }

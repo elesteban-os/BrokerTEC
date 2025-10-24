@@ -70,7 +70,12 @@ export default function CatalogosPage() {
         <TabsContent value="markets" className="space-y-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Mercados</CardTitle>
+              <div className="space-y-1">
+                <CardTitle>Mercados</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Todos los mercados operan en USD
+                </p>
+              </div>
               <Button onClick={() => setMarketDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Nuevo Mercado
