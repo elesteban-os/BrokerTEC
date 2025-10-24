@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { DataProvider } from "@/lib/data-context"
 
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
@@ -63,7 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
         <div className="absolute bottom-4 left-4 right-4">
           <Link href="/">
-            <Button variant="outline" className="justify-start gap-3 bg-transparent w-1/5">
+            <Button variant="outline" className="justify-start gap-3 bg-transparent">
               <LogOut className="h-5 w-5" />
               Cerrar Sesión
             </Button>

@@ -46,12 +46,36 @@ export interface User {
   id: string
   alias: string
   email: string
-  role: "admin" | "trader"
+  nombre: string
+  apellido1: string
+  apellido2: string
+  countryOrigin: string
+  phones: string[]
+  role: "admin" | "trader" | "analista"
   status: "active" | "disabled"
-  wallet: number
-  enabledMarkets: string[]
-  category: "basic" | "intermediate" | "advanced"
-  operationLimit: number
+  wallet?: number
+  enabledMarkets?: string[]
+  category?: "basic" | "intermediate" | "advanced"
+  operationLimit?: number
+  createdAt: Date
+}
+
+export interface UserCreation {
+  id: string
+  alias: string
+  email: string
+  nombre: string
+  apellido1: string
+  apellido2: string
+  countryOrigin: string
+  password: string
+  phones: string[]
+  role: "admin" | "trader" | "analista"
+  status: "active" | "disabled"
+  wallet?: number
+  enabledMarkets?: string[]
+  category?: "basic" | "intermediate" | "advanced"
+  operationLimit?: number
   createdAt: Date
 }
 
@@ -98,7 +122,7 @@ interface DataContextType {
     liquidationPrice: number,
     reason: string,
   ) => Promise<{ success: boolean; message: string }>
-  addUser: (user: Omit<User, "id" | "createdAt">) => void
+  addUser: (user: Omit<UserCreation, "id" | "createdAt">) => Promise<{ success: boolean; message: string }>
   updateUser: (id: string, user: Partial<User>) => void
   disableUser: (id: string, reason: string) => Promise<{ success: boolean; message: string }>
   addPriceHistory: (price: Omit<PriceHistory, "id">) => void
@@ -188,11 +212,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const [transactions, setTransactions] = useState<Transaction[]>([])
 
+  
   const [users, setUsers] = useState<User[]>([
     {
       id: "user1",
       alias: "TradeMaster",
       email: "trader1@example.com",
+      nombre: "Juan",
+      apellido1: "García",
+      apellido2: "López",
+      countryOrigin: "México",
+      phones: ["+52 555 123 4567"],
       role: "trader",
       status: "active",
       wallet: 50000,
@@ -205,6 +235,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       id: "user2",
       alias: "InvestorPro",
       email: "trader2@example.com",
+      nombre: "María",
+      apellido1: "Rodríguez",
+      apellido2: "Martínez",
+      countryOrigin: "España",
+      phones: ["+34 612 345 678", "+34 687 654 321"],
       role: "trader",
       status: "active",
       wallet: 25000,
@@ -217,6 +252,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       id: "user3",
       alias: "NewbieTrade",
       email: "trader3@example.com",
+      nombre: "Carlos",
+      apellido1: "Hernández",
+      apellido2: "Pérez",
+      countryOrigin: "Colombia",
+      phones: ["+57 300 123 4567"],
       role: "trader",
       status: "active",
       wallet: 10000,
@@ -224,6 +264,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
       category: "basic",
       operationLimit: 20000,
       createdAt: new Date("2024-02-01"),
+    },
+    {
+      id: "admin1",
+      alias: "AdminBroker",
+      email: "admin@brokertec.com",
+      nombre: "Ana",
+      apellido1: "Sánchez",
+      apellido2: "Torres",
+      countryOrigin: "México",
+      phones: ["+52 555 987 6543"],
+      role: "admin",
+      status: "active",
+      createdAt: new Date("2024-01-01"),
+    },
+    {
+      id: "analyst1",
+      alias: "DataAnalyst",
+      email: "analyst@brokertec.com",
+      nombre: "Luis",
+      apellido1: "Ramírez",
+      apellido2: "Gómez",
+      countryOrigin: "Argentina",
+      phones: ["+54 11 2345 6789"],
+      role: "analista",
+      status: "active",
+      createdAt: new Date("2024-01-05"),
     },
   ])
 
@@ -520,13 +586,60 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const addUser = (user: Omit<User, "id" | "createdAt">) => {
-    const newUser: User = {
+  // Para registro de nuevos usuarios
+  const addUser = async (
+    user: Omit<UserCreation, "id" | "createdAt">,
+  ): Promise<{ success: boolean; message: string }> => {
+    const newUser: UserCreation = {
       ...user,
       id: `user${Date.now()}`,
       createdAt: new Date(),
     }
+
+    // Verificar tipo de usuario y guardar en BD por medio de API
+    if (newUser.role === "admin") {
+      // Crear JSON que API espera
+      const bodyJSON = {
+        "alias": newUser.alias,
+        "email": newUser.email,
+        "nombre": newUser.nombre,
+        "apellido1": newUser.apellido1,
+        "apellido2": newUser.apellido2,
+        "password": newUser.password,
+        "country_origin": newUser.countryOrigin,
+        "id_role": 1 // admin
+      }
+
+      // Obtener token de auth
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+
+      // Llamar a la API
+      try {
+        const res = await fetch("/api/auth/admin/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(bodyJSON),
+        })
+        const data = await res.json()
+        if (!res.ok) {
+          throw new Error(data?.message || "Fallo al registrar admin")
+        }
+        setUsers([...users, newUser])
+        return { success: true, message: data?.message || "Admin registrado correctamente" }
+
+      } catch (err) {
+        const error = err as Error
+        console.error("Fallo al registrar admin:", error)
+        return { success: false, message: error?.message || "Fallo al registrar admin" }
+      }
+    }
+
+    // Fallback: for traders/analysts or when no API is needed, add locally
     setUsers([...users, newUser])
+    return { success: true, message: "Usuario creado localmente" }
   }
 
   const updateUser = (id: string, user: Partial<User>) => {
@@ -547,50 +660,52 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return { success: false, message: "justificación requerida" }
     }
 
-    // Find user positions
-    const userPositions = positions.filter((p) => p.userId === id)
+    if (user.role === "trader") {
+      // Find user positions
+      const userPositions = positions.filter((p) => p.userId === id)
 
-    if (userPositions.length > 0) {
-      // Liquidate all positions at current price
-      const newTransactions: Transaction[] = userPositions.map((position) => {
-        const company = companies.find((c) => c.id === position.companyId)
-        const liquidationPrice = company?.currentPrice || 0
+      if (userPositions.length > 0) {
+        // Liquidate all positions at current price
+        const newTransactions: Transaction[] = userPositions.map((position) => {
+          const company = companies.find((c) => c.id === position.companyId)
+          const liquidationPrice = company?.currentPrice || 0
+          return {
+            id: `${Date.now()}-${position.id}`,
+            userId: id,
+            companyId: position.companyId,
+            type: "liquidation" as const,
+            shares: position.shares,
+            price: liquidationPrice,
+            total: position.shares * liquidationPrice,
+            reason: `Usuario deshabilitado: ${reason}`,
+            createdAt: new Date(),
+          }
+        })
+
+        // Calculate total liquidation value
+        const totalLiquidation = newTransactions.reduce((sum, t) => sum + t.total, 0)
+
+        // Add transactions
+        setTransactions([...transactions, ...newTransactions])
+
+        // Remove positions
+        setPositions(positions.filter((p) => p.userId !== id))
+
+        // Update user wallet and status
+        setUsers(
+          users.map((u) =>
+            u.id === id ? { ...u, status: "disabled" as const, wallet: (u.wallet || 0) + totalLiquidation } : u,
+          ),
+        )
+
         return {
-          id: `${Date.now()}-${position.id}`,
-          userId: id,
-          companyId: position.companyId,
-          type: "liquidation" as const,
-          shares: position.shares,
-          price: liquidationPrice,
-          total: position.shares * liquidationPrice,
-          reason: `Usuario deshabilitado: ${reason}`,
-          createdAt: new Date(),
+          success: true,
+          message: `Usuario deshabilitado. ${userPositions.length} posiciones liquidadas por $${totalLiquidation.toFixed(2)}.`,
         }
-      })
-
-      // Calculate total liquidation value
-      const totalLiquidation = newTransactions.reduce((sum, t) => sum + t.total, 0)
-
-      // Add transactions
-      setTransactions([...transactions, ...newTransactions])
-
-      // Remove positions
-      setPositions(positions.filter((p) => p.userId !== id))
-
-      // Update user wallet and status
-      setUsers(
-        users.map((u) =>
-          u.id === id ? { ...u, status: "disabled" as const, wallet: u.wallet + totalLiquidation } : u,
-        ),
-      )
-
-      return {
-        success: true,
-        message: `Usuario deshabilitado. ${userPositions.length} posiciones liquidadas por $${totalLiquidation.toFixed(2)}.`,
       }
     }
 
-    // No positions, just disable
+    // No positions or not a trader, just disable
     setUsers(users.map((u) => (u.id === id ? { ...u, status: "disabled" as const } : u)))
 
     return {
