@@ -76,6 +76,22 @@ export class PublicRegisterService {
       await this.phoneNumberRepository.save(phoneNumbers);
     }
 
+    // =============================================
+    // CREAR WALLET AUTOMÁTICAMENTE PARA TRADER
+    // =============================================
+    // Como es registro público, siempre será TRADER
+    // Se llama al Stored Procedure para crear el wallet con categoría JUNIOR por defecto
+    try {
+      await AppDataSource.query(
+        'EXEC usp_CreateWalletForTrader @id_user = @0, @categoria = @1',
+        [savedUser.id_user, 'JUNIOR']
+      );
+    } catch (error) {
+      console.error('Error al crear wallet para trader:', error);
+      // No lanzamos error aquí para no interrumpir el registro
+      // El wallet se puede crear después manualmente si falla
+    }
+
     // Preparar datos del usuario autenticado para JWT
     const authenticatedUser: AuthenticatedUser = {
       id_user: savedUser.id_user,

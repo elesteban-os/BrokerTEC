@@ -2,6 +2,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn, CreateDateColumn, Index } from 'typeorm';
 import { Mercado } from './mercado.entity';
 import { PrecioHistorico } from './precio-historico.entity';
+import { Posicion } from './posicion.entity';
 
 @Entity('empresas')
 export class Empresa {
@@ -39,4 +40,8 @@ export class Empresa {
   // Relación uno a muchos: una empresa tiene muchos precios históricos
   @OneToMany(() => PrecioHistorico, precio => precio.empresa)
   precios_historicos!: PrecioHistorico[];
+
+  // Relación uno a muchos: una empresa puede tener muchas posiciones (diferentes usuarios)
+  @OneToMany(() => Posicion, posicion => posicion.empresa)
+  posiciones!: Posicion[];
 }

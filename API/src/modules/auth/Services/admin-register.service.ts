@@ -61,8 +61,31 @@ export class AdminRegisterService {
     // Guardar el usuario
     const savedUser = await this.userRepository.save(newUser);
 
+    // =============================================
+    // CREAR WALLET SOLO SI ES TRADER
+    // =============================================
+    // Si el rol es TRADER (id_role = 3), crear wallet automáticamente
+    // Admin y Analista NO tienen wallet (queda null)
+    if (registerDto.id_role === 3) {
+      try {
+        // Llamar al Stored Procedure para crear el wallet
+        // Por defecto se crea con categoría JUNIOR
+        await AppDataSource.query(
+          'EXEC usp_CreateWalletForTrader @id_user = @0, @categoria = @1',
+          [savedUser.id_user, 'JUNIOR']
+        );
+      } catch (error) {
+        console.error('Error al crear wallet para trader:', error);
+        // No lanzamos error aquí para no interrumpir el registro
+        // El wallet se puede crear después manualmente si falla
+      }
+    }
+
     // Determinar el nombre del rol
-    const roleName = registerDto.id_role === 1 ? 'ADMINISTRADOR' : 'ANALISTA';
+    const roleName = 
+      registerDto.id_role === 1 ? 'ADMINISTRADOR' : 
+      registerDto.id_role === 2 ? 'ANALISTA' : 
+      'TRADER';
 
     // Preparar datos del usuario autenticado para JWT
     const authenticatedUser: AuthenticatedUser = {
