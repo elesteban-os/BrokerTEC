@@ -1,7 +1,11 @@
 "use client"
 
+import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Wallet, Briefcase, AlertTriangle } from "lucide-react"
+import { SecurityLiquidateModal } from "./security-liquidate-modal"
 
 interface Company {
   name: string
@@ -32,10 +36,32 @@ export function TraderDashboard() {
     return `$${value.toLocaleString()}`
   }
 
+  // State for security modal
+  const [showSecurityModal, setShowSecurityModal] = useState(false)
+  const router = useRouter()
+  
+  // Handlers for buttons
   const handleLogout = () => {
     console.log("Logout clicked")
     // TODO: Implement logout logic
   }
+
+  const handleGoToWallet = () => {
+    router.push("/trader/wallet")
+    // TODO: Implement navigation to wallet
+  }
+
+  const handleGoToPortfolio = () => {
+    router.push("/trader/portfolio")
+    // TODO: Implement navigation to portfolio
+  }
+
+  // Handler for liquidate all
+  const handleLiquidateAll = () => {
+    setShowSecurityModal(true)
+  }
+
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -53,9 +79,28 @@ export function TraderDashboard() {
               <p className="text-sm text-muted-foreground">Trader: fernanda1</p>
             </div>
           </div>
-          <Button onClick={handleLogout} variant="outline" className="h-10 bg-transparent">
-            Cerrar sesión
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleGoToPortfolio} variant="outline" className="h-10 bg-transparent">
+              <Briefcase className="w-4 h-4 mr-2" />
+              Mi Portafolio
+            </Button>
+            <Button onClick={handleGoToWallet} variant="outline" className="h-10 bg-transparent">
+              <Wallet className="w-4 h-4 mr-2" />
+              
+              Mi Billetera
+            </Button>
+            <Button
+              onClick={handleLiquidateAll}
+              variant="outline"
+              className="h-10 bg-transparent text-destructive hover:text-destructive border-destructive/50 hover:bg-destructive/10"
+            >
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Liquidar todo
+            </Button>
+            <Button onClick={handleLogout} variant="outline" className="h-10 bg-transparent">
+              Cerrar sesión
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -136,6 +181,8 @@ export function TraderDashboard() {
           </Card>
         </div>
       </main>
+
+      <SecurityLiquidateModal open={showSecurityModal} onOpenChange={setShowSecurityModal} />
     </div>
   )
 }
