@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useData, type Market } from "@/lib/data-context"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
@@ -18,14 +18,20 @@ import { Edit, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge" // added Badge import for enabled status
 
 interface MarketsTableProps {
-  markets: Market[]
   onEdit: (market: Market) => void
 }
 
-export function MarketsTable({ markets, onEdit }: MarketsTableProps) {
-  const { deleteMarket } = useData()
+export function MarketsTable({ onEdit }: MarketsTableProps) {
+  const { deleteMarket, getMarkets, markets } = useData()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [marketToDelete, setMarketToDelete] = useState<Market | null>(null)
+  const calledRef = useRef(false)
+
+  useEffect(() => {
+    if (calledRef.current) return
+    calledRef.current = true
+    getMarkets().catch((e) => console.error("getMarkets failed", e))
+  }, [getMarkets])
 
   const handleDeleteClick = (market: Market) => {
     setMarketToDelete(market)

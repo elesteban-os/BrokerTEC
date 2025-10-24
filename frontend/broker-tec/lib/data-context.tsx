@@ -113,8 +113,9 @@ interface DataContextType {
   updateProfile: (profile: Partial<UserProfile>) => Promise<{ success: boolean; message: string }>
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>
   addMarket: (market: Omit<Market, "id" | "createdAt">) => Promise<{ success: boolean; message: string }>
-  updateMarket: (id: string, market: Partial<Market>) => Promise<{ success: boolean; message: string }>
-  deleteMarket: (id: string) => void
+  updateMarket: (id: string, name: string, market: Partial<Market>) => Promise<{ success: boolean; message: string }>
+  getMarkets: () => Promise<{ success: boolean; message: string }>
+  deleteMarket: (id: string) => Promise<void>
   addCompany: (company: Omit<Company, "id" | "createdAt">) => void
   updateCompany: (id: string, company: Partial<Company>) => void
   deleteCompany: (id: string) => void
@@ -133,22 +134,50 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [markets, setMarkets] = useState<Market[]>([
-    {
-      id: "1",
-      name: "NASDAQ",
-      currency: "USD",
-      enabled: true,
-      createdAt: new Date("2024-01-01"),
-    },
-    {
-      id: "2",
-      name: "NYSE",
-      currency: "USD",
-      enabled: false,
-      createdAt: new Date("2024-01-01"),
-    },
-  ])
+  const [markets, setMarkets] = useState<Market[]>([])
+  // GET markets helper (exposed) - puedes llamarla para refrescar en cualquier parte
+  const getMarkets = async (): Promise<{ success: boolean; message: string }> => {
+    console.log("Fetching markets from API...")
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+      const res = await fetch("/api/admin/mercados", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+      })
+
+      const payload = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        console.error("Failed to fetch markets:", payload)
+        return { success: false, message: payload?.message || "Fallo al obtener mercados" }
+      }
+
+      const list = (payload.data || payload || []).map((m: any) => ({
+        id: m.id_mercado ?? (m.id ? String(m.id) : String(Date.now())),
+        name: m.nombre ?? m.name ?? "",
+        currency: m.moneda ?? m.currency ?? "USD",
+        enabled: typeof m.habilitado !== "undefined" ? Boolean(m.habilitado) : true,
+        createdAt: m.fecha_creacion ? new Date(m.fecha_creacion) : new Date(),
+      })) as Market[]
+      console.log("Fetched markets:", list)
+
+      setMarkets(list)
+      return { success: true, message: "Mercados cargados" }
+    } catch (err) {
+      console.error("Error fetching markets:", err)
+      const e = err as Error
+      return { success: false, message: e.message || "Error al cargar mercados" }
+    }
+  }
+
+  // // Cargar los mercados al montar
+  // useEffect(() => {
+  //   void getMarkets()
+  // }, [])
 
   const [companies, setCompanies] = useState<Company[]>([
     {
@@ -539,9 +568,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
       })
 
       const data = await response.json()
+      console.log("API response:", data)
 
       if (response.ok) {
-        setMarkets([...markets, newMarket])
+        const newMarketAdd: Market = {
+          id: data.data.id_mercado,
+          name: data.data.nombre,
+          currency: newMarket.currency,
+          enabled: data.data.habilitado,
+          createdAt: data.data.fecha_creacion ? new Date(data.data.fecha_creacion) : new Date(),
+        }
+
+        console.log("New market to add:", newMarketAdd)
+        setMarkets([...markets, newMarketAdd])
+        // Refresh from API to ensure server state is authoritative
+        try {
+          await getMarkets()
+        } catch {
+          /* ignore refresh errors */
+        }
         return { success: true, message: data?.message || "Mercado creado exitosamente" }
       } else {
         throw new Error(data?.message || "Fallo al crear mercado")
@@ -558,10 +603,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const updateMarket = async (
     id: string,
+    name: string,
     market: Partial<Market>,
   ): Promise<{ success: boolean; message: string }> => {
+    
+    // Llamar a la API para actualizar el mercado en el backend
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+
+    const bodyJSON = {
+      "nombre": name,
+      "habilitado": market.enabled,
+    }
+
     try {
-      setMarkets(markets.map((m) => (m.id === id ? { ...m, ...market } : m)))
+      const response = await fetch(`/api/admin/mercados/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bodyJSON),
+      })
+      const data = await response.json()
+      console.log("API response:", data)
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Fallo al actualizar mercado")
+      }
+
+      // Refresh list to mirror server state
+      try {
+        await getMarkets()
+      } catch {
+        /* ignore refresh errors */
+      }
       return { success: true, message: "Mercado actualizado correctamente" }
     } catch (error) {
       console.error("Error updating market:", error)
@@ -570,8 +645,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const deleteMarket = (id: string) => {
-    setMarkets(markets.filter((m) => m.id !== id))
+  const deleteMarket = async (id: string): Promise<void> => {
+
+    // Llamar a la API para eliminar el mercado en el backend
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+
+    try {
+      const response = await fetch(`/api/admin/mercados/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      if (response.ok) {
+        setMarkets(markets.filter((m) => m.id !== id))
+      } else {
+        console.error("Fallo al eliminar mercado")
+      }
+    } catch (error) {
+      console.error("Error deleting market:", error)
+    }
   }
 
   const addCompany = (company: Omit<Company, "id" | "createdAt">) => {
@@ -936,6 +1029,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     <DataContext.Provider
       value={{
         markets,
+        getMarkets,
         companies,
         positions,
         transactions,

@@ -44,7 +44,7 @@ export function MarketDialog({ open, onClose, market }: MarketDialogProps) {
     e.preventDefault()
 
     if (market) {
-      const res = await updateMarket(market.id, { enabled })
+      const res = await updateMarket(market.id, name, { enabled })
       setResultSuccess(res.success)
       setResultMessage(res.message)
       setResultOpen(true)
@@ -78,9 +78,7 @@ export function MarketDialog({ open, onClose, market }: MarketDialogProps) {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="NASDAQ"
                 required
-                disabled={!!market}
               />
-              {market && <p className="text-sm text-muted-foreground">El nombre del mercado no puede ser modificado</p>}
             </div>
             {market ? (
               <div className="flex items-center justify-between space-x-2">

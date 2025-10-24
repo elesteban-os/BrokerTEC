@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { use, useState } from "react"
 import { useData } from "@/lib/data-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -82,6 +82,7 @@ export default function CatalogosPage() {
               </Button>
             </CardHeader>
             <CardContent>
+              {/* @ts-ignore */}
               <MarketsTable markets={markets} onEdit={handleEditMarket} />
             </CardContent>
           </Card>
