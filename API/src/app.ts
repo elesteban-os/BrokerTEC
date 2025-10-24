@@ -12,6 +12,7 @@ import editUserController from './modules/gestion_usuarios/Controllers/edit_user
 import userUpdatePasswordController from './modules/gestion_usuarios/Controllers/user_update_password.controller';
 import deleteUserController from './modules/gestion_usuarios/Controllers/delete_user.controller';
 import mercadosController from './modules/gestion_mercados/Controllers/mercados.controller';
+import empresasController from './modules/gestion_empresas/Controllers/empresas.controller';
 
 async function bootstrap() {
   await AppDataSource.initialize();        // conecta TypeORM
@@ -66,6 +67,9 @@ async function bootstrap() {
 
   // rutas del módulo de gestión de mercados (Admin)
   app.use('/api/admin/mercados', mercadosController);
+
+  // rutas del módulo de gestión de empresas (Admin)
+  app.use('/api/admin/empresas', empresasController);
 
   // error handler centralizado (no repitas try/catch en cada ruta)
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
