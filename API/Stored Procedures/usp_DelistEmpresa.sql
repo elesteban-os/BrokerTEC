@@ -1,18 +1,13 @@
--- =============================================
 -- Stored Procedure: usp_DelistEmpresa
 -- Descripción: Elimina una empresa del sistema y liquida automáticamente
 --              todas las posiciones activas de los traders
--- Autor: BrokerTEC Team
--- Fecha: 2025-10-24
--- =============================================
-
+------------------
 -- Parámetros de entrada:
 -- @id_empresa: ID de la empresa a eliminar (delisting)
 -- @justificacion: Justificación del delisting (para auditoría)
 -- @id_admin: ID del administrador que realiza la acción
 -- @admin_alias: Alias del administrador
 -- @admin_role: Rol del administrador
--- =============================================
 
 CREATE OR ALTER PROCEDURE usp_DelistEmpresa
     @id_empresa INT,
@@ -33,12 +28,19 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
         
-        -- =============================================
-        -- 1. VALIDAR QUE LA EMPRESA EXISTE
-        -- =============================================
+        -----------------------------------------------
+        -- 1. VALIDAR QUE LA EMPRESA EXISTE Y ESTÁ HABILITADA
+
         IF NOT EXISTS (SELECT 1 FROM empresas WHERE id_empresa = @id_empresa)
         BEGIN
             RAISERROR('La empresa no existe', 16, 1);
+            RETURN;
+        END
+        
+        -- Validar que la empresa esté habilitada
+        IF EXISTS (SELECT 1 FROM empresas WHERE id_empresa = @id_empresa AND habilitado = 0)
+        BEGIN
+            RAISERROR('La empresa ya está deshabilitada', 16, 1);
             RETURN;
         END
         
@@ -49,9 +51,9 @@ BEGIN
         FROM empresas
         WHERE id_empresa = @id_empresa;
         
-        -- =============================================
+        -----------------------------------------------
         -- 2. LIQUIDAR TODAS LAS POSICIONES ACTIVAS
-        -- =============================================
+    
         -- Cursor para procesar cada posición
         DECLARE @id_posicion INT;
         DECLARE @id_user INT;
@@ -104,7 +106,7 @@ BEGIN
                 'LIQUIDACION_DELISTING',
                 'posiciones',
                 @id_posicion,
-                @nombre_empresa,
+                @nombre_empresa,  -- Guardamos el nombre de la empresa
                 @cantidad,
                 @precio_actual,
                 @monto_liquidacion,
@@ -112,7 +114,7 @@ BEGIN
                 w.saldo,
                 @justificacion,
                 'Liquidación automática por delisting de ' + @nombre_empresa,
-                GETDATE(),
+                GETDATE(),  --  NECESARIO en SP
                 1
             FROM usuarios u
             INNER JOIN roles r ON u.id_role = r.id_role
@@ -132,16 +134,14 @@ BEGIN
         CLOSE posiciones_cursor;
         DEALLOCATE posiciones_cursor;
         
-        -- =============================================
+        ----------------
         -- 3. DESHABILITAR LA EMPRESA
-        -- =============================================
         UPDATE empresas
         SET habilitado = 0
         WHERE id_empresa = @id_empresa;
-        
-        -- =============================================
+
+        ----------------
         -- 4. REGISTRAR AUDITORÍA DEL DELISTING
-        -- =============================================
         INSERT INTO auditoria (
             id_user,
             user_alias,
@@ -162,18 +162,17 @@ BEGIN
             'DELISTING',
             'empresas',
             @id_empresa,
-            @nombre_empresa,
+            @nombre_empresa,  -- Guardamos el nombre de la empresa
             @justificacion,
             'Delisting de ' + @nombre_empresa + '. ' + 
             CAST(@posiciones_liquidadas AS VARCHAR) + ' posiciones liquidadas por $' + 
             CAST(@monto_total_liquidado AS VARCHAR),
-            GETDATE(),
+            GETDATE(),  -- ✅ NECESARIO en SP
             1
         );
-        
-        -- =============================================
+
+        -------------------------------
         -- 5. CONFIRMAR TRANSACCIÓN
-        -- =============================================
         COMMIT TRANSACTION;
         
         -- Mensaje de éxito
@@ -184,9 +183,8 @@ BEGIN
         
     END TRY
     BEGIN CATCH
-        -- =============================================
+        -------------------------------
         -- MANEJO DE ERRORES
-        -- =============================================
         IF @@TRANCOUNT > 0
             ROLLBACK TRANSACTION;
         
@@ -214,7 +212,7 @@ BEGIN
             @justificacion,
             'Error en delisting de empresa',
             ERROR_MESSAGE(),
-            GETDATE(),
+            GETDATE(),  -- ✅ NECESARIO en SP
             0
         );
         
@@ -228,9 +226,7 @@ BEGIN
 END;
 GO
 
--- =============================================
 -- EJEMPLO DE USO:
--- =============================================
 -- EXEC usp_DelistEmpresa 
 --     @id_empresa = 1, 
 --     @justificacion = 'Fusión corporativa',
