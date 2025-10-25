@@ -1,14 +1,10 @@
--- =============================================
+
 -- Stored Procedure: usp_CreateWalletForTrader
 -- Descripción: Crea automáticamente un wallet para un usuario TRADER
--- Autor: BrokerTEC Team
--- Fecha: 2025-10-24
--- =============================================
-
 -- Parámetros de entrada:
 -- @id_user: ID del usuario trader al que se le creará el wallet
 -- @categoria: Categoría del wallet (JUNIOR, MID, SENIOR) - default: JUNIOR
--- =============================================
+
 
 CREATE OR ALTER PROCEDURE usp_CreateWalletForTrader
     @id_user INT,
@@ -23,9 +19,7 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
         
-        -- =============================================
         -- 1. VALIDAR QUE EL USUARIO EXISTE Y ES TRADER
-        -- =============================================
         IF NOT EXISTS (
             SELECT 1 
             FROM usuarios u
@@ -39,9 +33,8 @@ BEGIN
             RETURN;
         END
         
-        -- =============================================
+  
         -- 2. VALIDAR QUE NO TENGA WALLET YA CREADO
-        -- =============================================
         IF EXISTS (SELECT 1 FROM wallets WHERE id_user = @id_user)
         BEGIN
             -- Si ya tiene wallet, no hacer nada (no es error, solo retornar)
@@ -50,19 +43,18 @@ BEGIN
             RETURN;
         END
         
-        -- =============================================
+
         -- 3. DEFINIR LÍMITE DIARIO SEGÚN CATEGORÍA
-        -- =============================================
         -- Según requerimientos del proyecto:
         -- JUNIOR: Límite bajo ($1,000 USD/día)
         -- MID: Límite medio ($5,000 USD/día)
         -- SENIOR: Límite alto ($10,000 USD/día)
         
         SET @limite_diario = CASE @categoria
-            WHEN 'JUNIOR' THEN 1000.00
-            WHEN 'MID' THEN 5000.00
-            WHEN 'SENIOR' THEN 10000.00
-            ELSE 1000.00 -- Default: JUNIOR
+            WHEN 'JUNIOR' THEN 5000.00   --dolares
+            WHEN 'MID' THEN 10000.00      --dolares
+            WHEN 'SENIOR' THEN 50000.00   --dolares
+            ELSE 5000.00 -- Default: JUNIOR
         END;
         
         -- =============================================
@@ -85,9 +77,7 @@ BEGIN
             NULL                    -- Sin recargas aún
         );
         
-        -- =============================================
         -- 5. CONFIRMAR TRANSACCIÓN
-        -- =============================================
         COMMIT TRANSACTION;
         
         -- Mensaje de éxito
@@ -95,9 +85,8 @@ BEGIN
         
     END TRY
     BEGIN CATCH
-        -- =============================================
+
         -- MANEJO DE ERRORES
-        -- =============================================
         IF @@TRANCOUNT > 0
             ROLLBACK TRANSACTION;
         
@@ -111,9 +100,7 @@ BEGIN
 END;
 GO
 
--- =============================================
 -- EJEMPLO DE USO:
--- =============================================
 -- EXEC usp_CreateWalletForTrader @id_user = 5, @categoria = 'JUNIOR';
 -- EXEC usp_CreateWalletForTrader @id_user = 6, @categoria = 'MID';
 -- EXEC usp_CreateWalletForTrader @id_user = 7, @categoria = 'SENIOR';
