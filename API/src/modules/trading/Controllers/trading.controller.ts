@@ -5,6 +5,7 @@ import { RolesGuard } from '../../auth/Guards/roles.guard';
 import { validateDto } from '../../../common/validate-dto';
 import { ComprarAccionesDto } from '../DTOs/comprar-acciones.dto';
 import { VenderAccionesDto } from '../DTOs/vender-acciones.dto';
+import { LiquidarTodoDto } from '../DTOs/liquidar-todo.dto';
 
 /**
  * Controlador para trading de traders
@@ -15,6 +16,8 @@ import { VenderAccionesDto } from '../DTOs/vender-acciones.dto';
  * - GET /api/trader/empresas/:id - Detalle completo de una empresa
  * - POST /api/trader/trading/comprar - Comprar acciones
  * - POST /api/trader/trading/vender - Vender acciones
+ * - GET /api/trader/portafolio - Ver portafolio completo
+ * - POST /api/trader/portafolio/liquidar-todo - Liquidar todas las posiciones
  */
 export class TradingController {
   public router: Router;
@@ -354,6 +357,172 @@ export class TradingController {
       validateDto(VenderAccionesDto),
       this.venderAcciones.bind(this)
     );
+
+    /**
+     * @swagger
+     * /api/trader/portafolio:
+     *   get:
+     *     summary: Ver portafolio completo del trader
+     *     description: |
+     *       **Solo traders autenticados**
+     *       
+     *       Retorna todas las posiciones activas del trader con:
+     *       - Empresa (nombre, ticker si existe)
+     *       - Cantidad de acciones
+     *       - Costo promedio de compra
+     *       - Precio actual
+     *       - Valor actual total (cantidad × precio_actual)
+     *       - Ganancia/pérdida no realizada (valor_actual - valor_invertido)
+     *       - Porcentaje de ganancia/pérdida
+     *       
+     *       Incluye resumen con totales agregados.
+     *     tags:
+     *       - Trading Trader
+     *     security:
+     *       - bearerAuth: []
+     *     responses:
+     *       200:
+     *         description: Portafolio obtenido exitosamente
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 success:
+     *                   type: boolean
+     *                   example: true
+     *                 data:
+     *                   type: object
+     *                   properties:
+     *                     posiciones:
+     *                       type: array
+     *                       items:
+     *                         type: object
+     *                         properties:
+     *                           id_posicion:
+     *                             type: integer
+     *                           empresa:
+     *                             type: object
+     *                             properties:
+     *                               id_empresa:
+     *                                 type: integer
+     *                               nombre:
+     *                                 type: string
+     *                               ticker:
+     *                                 type: string
+     *                           cantidad_acciones:
+     *                             type: integer
+     *                           costo_promedio:
+     *                             type: number
+     *                           precio_actual:
+     *                             type: number
+     *                           valor_invertido:
+     *                             type: number
+     *                           valor_actual_total:
+     *                             type: number
+     *                           ganancia_perdida:
+     *                             type: number
+     *                           porcentaje_ganancia_perdida:
+     *                             type: number
+     *                           fecha_creacion:
+     *                             type: string
+     *                             format: date-time
+     *                     resumen:
+     *                       type: object
+     *                       properties:
+     *                         total_posiciones:
+     *                           type: integer
+     *                         total_invertido:
+     *                           type: number
+     *                         valor_actual_total:
+     *                           type: number
+     *                         ganancia_perdida_total:
+     *                           type: number
+     *                         porcentaje_ganancia_perdida:
+     *                           type: number
+     *       401:
+     *         description: No autenticado o token inválido
+     *       403:
+     *         description: No tienes rol de TRADER
+     *       500:
+     *         description: Error interno del servidor
+     */
+    this.router.get(
+      '/portafolio',
+      JwtAuthGuard.middleware(),
+      RolesGuard.hasRole(['TRADER']),
+      this.getPortafolio.bind(this)
+    );
+
+    /**
+     * @swagger
+     * /api/trader/portafolio/liquidar-todo:
+     *   post:
+     *     summary: Liquidar todas las posiciones del trader
+     *     description: |
+     *       **Solo traders autenticados - REQUIERE CONTRASEÑA**
+     *       
+     *       Vende TODAS las posiciones del trader al precio actual:
+     *       - Requiere reingreso de contraseña para confirmar
+     *       - Operación atómica: vende todas o ninguna
+     *       - Abona todo el dinero recibido a la wallet
+     *       - Registra auditoría completa de cada venta
+     *       - Devuelve las acciones al inventario de cada empresa
+     *       
+     *       El mensaje de respuesta incluye:
+     *       - Cantidad de posiciones liquidadas
+     *       - Total invertido vs Total recibido
+     *       - Ganancia/pérdida total
+     *       - Saldo final en wallet
+     *       
+     *       **ADVERTENCIA**: Esta acción es irreversible.
+     *     tags:
+     *       - Trading Trader
+     *     security:
+     *       - bearerAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required:
+     *               - password
+     *             properties:
+     *               password:
+     *                 type: string
+     *                 description: Contraseña del trader para confirmar la liquidación
+     *                 example: "miPassword123"
+     *     responses:
+     *       200:
+     *         description: Liquidación exitosa
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 success:
+     *                   type: boolean
+     *                   example: true
+     *                 message:
+     *                   type: string
+     *                   example: "Liquidación exitosa de 5 posiciones (150 acciones). Total invertido: $75000.00. Total recibido: $82500.00. Ganancia total: $7500.00. Saldo final: $95000.00"
+     *       400:
+     *         description: Contraseña incorrecta o no hay posiciones para liquidar
+     *       401:
+     *         description: No autenticado o token inválido
+     *       403:
+     *         description: No tienes rol de TRADER
+     *       500:
+     *         description: Error interno del servidor
+     */
+    this.router.post(
+      '/portafolio/liquidar-todo',
+      JwtAuthGuard.middleware(),
+      RolesGuard.hasRole(['TRADER']),
+      validateDto(LiquidarTodoDto),
+      this.liquidarTodo.bind(this)
+    );
   }
 
   /**
@@ -537,6 +706,85 @@ export class TradingController {
       res.status(500).json({
         success: false,
         message: 'Error al realizar la venta',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/trader/portafolio
+   * Obtiene el portafolio completo del trader con todas sus posiciones
+   */
+  private async getPortafolio(req: Request, res: Response): Promise<void> {
+    try {
+      // Extraer datos del JWT (agregados por JwtAuthGuard)
+      const { id_user } = (req as any).user;
+
+      // Obtener portafolio
+      const portafolio = await this.tradingService.getPortafolio(id_user);
+
+      res.status(200).json({
+        success: true,
+        data: portafolio
+      });
+
+    } catch (error: any) {
+      console.error('Error al obtener portafolio:', error);
+
+      res.status(500).json({
+        success: false,
+        message: 'Error al cargar el portafolio',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * POST /api/trader/portafolio/liquidar-todo
+   * Liquida todas las posiciones del trader
+   * 
+   * Requiere contraseña para confirmar la operación
+   */
+  private async liquidarTodo(req: Request, res: Response): Promise<void> {
+    try {
+      // Extraer datos del JWT (agregados por JwtAuthGuard)
+      const { id_user, alias } = (req as any).user;
+
+      // Extraer contraseña del body (validada por LiquidarTodoDto)
+      const { password } = req.body;
+
+      // Ejecutar liquidación
+      const resultado = await this.tradingService.liquidarTodo(
+        id_user,
+        alias,
+        password
+      );
+
+      res.status(200).json({
+        success: true,
+        message: resultado.mensaje
+      });
+
+    } catch (error: any) {
+      console.error('Error al liquidar portafolio:', error);
+
+      // Errores de validación (contraseña incorrecta, sin posiciones)
+      if (
+        error.message.includes('Contraseña incorrecta') ||
+        error.message.includes('No tienes posiciones') ||
+        error.message.includes('no disponible')
+      ) {
+        res.status(400).json({
+          success: false,
+          message: error.message
+        });
+        return;
+      }
+
+      // Error genérico
+      res.status(500).json({
+        success: false,
+        message: 'Error al liquidar el portafolio',
         error: error.message
       });
     }

@@ -2,22 +2,29 @@ import { AppDataSource } from '../../../config/data-source';
 import { Empresa } from '../../../entities/empresa.entity';
 import { Mercado } from '../../../entities/mercado.entity';
 import { PrecioHistorico } from '../../../entities/precio-historico.entity';
+import { Posicion } from '../../../entities/posicion.entity';
+import { User } from '../../../entities/user.entity';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 
 /**
- * Servicio para consultas de trading de traders
- * Portada (top empresas por mercado), detalle de empresas, compra y venta de acciones
+ * Servicio para trading de traders
+ * Portada, detalle de empresas, compra/venta de acciones, portafolio y liquidación
  * Solo accesible por usuarios con rol TRADER
  */
 export class TradingService {
   private empresaRepository: Repository<Empresa>;
   private mercadoRepository: Repository<Mercado>;
   private precioHistoricoRepository: Repository<PrecioHistorico>;
+  private posicionRepository: Repository<Posicion>;
+  private userRepository: Repository<User>;
 
   constructor() {
     this.empresaRepository = AppDataSource.getRepository(Empresa);
     this.mercadoRepository = AppDataSource.getRepository(Mercado);
     this.precioHistoricoRepository = AppDataSource.getRepository(PrecioHistorico);
+    this.posicionRepository = AppDataSource.getRepository(Posicion);
+    this.userRepository = AppDataSource.getRepository(User);
   }
 
   /**
@@ -230,6 +237,156 @@ export class TradingService {
     } catch (error: any) {
       console.error('Error en venta de acciones:', error);
       throw new Error(error.message || 'Error al realizar la venta');
+    }
+  }
+
+  /**
+   * Obtiene el portafolio completo del trader
+   * Muestra todas sus posiciones con ganancias/pérdidas no realizadas
+   * 
+   * @param id_user - ID del trader
+   * @returns Lista de posiciones con detalles y resumen total
+   */
+  async getPortafolio(id_user: number) {
+    try {
+      // Obtener todas las posiciones del trader con información de empresas
+      const posiciones = await this.posicionRepository.find({
+        where: { id_user },
+        relations: ['empresa'],
+        order: { fecha_creacion: 'DESC' }
+      });
+
+      if (posiciones.length === 0) {
+        return {
+          posiciones: [],
+          resumen: {
+            total_posiciones: 0,
+            total_invertido: 0,
+            valor_actual_total: 0,
+            ganancia_perdida_total: 0,
+            porcentaje_ganancia_perdida: 0
+          }
+        };
+      }
+
+      // Calcular detalles para cada posición
+      const posicionesDetalladas = posiciones.map(posicion => {
+        const valor_invertido = posicion.cantidad * posicion.costo_promedio;
+        const valor_actual_total = posicion.cantidad * posicion.empresa.precio_actual;
+        const ganancia_perdida = valor_actual_total - valor_invertido;
+        const porcentaje_ganancia_perdida = (ganancia_perdida / valor_invertido) * 100;
+
+        return {
+          id_posicion: posicion.id_posicion,
+          empresa: {
+            id_empresa: posicion.empresa.id_empresa,
+            nombre: posicion.empresa.nombre,
+            ticker: posicion.empresa.nombre // Si tienes un campo ticker separado, úsalo
+          },
+          cantidad_acciones: posicion.cantidad,
+          costo_promedio: posicion.costo_promedio,
+          precio_actual: posicion.empresa.precio_actual,
+          valor_invertido: Number(valor_invertido.toFixed(2)),
+          valor_actual_total: Number(valor_actual_total.toFixed(2)),
+          ganancia_perdida: Number(ganancia_perdida.toFixed(2)),
+          porcentaje_ganancia_perdida: Number(porcentaje_ganancia_perdida.toFixed(2)),
+          fecha_creacion: posicion.fecha_creacion
+        };
+      });
+
+      // Calcular resumen total
+      const resumen = posicionesDetalladas.reduce(
+        (acc, pos) => ({
+          total_posiciones: acc.total_posiciones + 1,
+          total_invertido: acc.total_invertido + pos.valor_invertido,
+          valor_actual_total: acc.valor_actual_total + pos.valor_actual_total,
+          ganancia_perdida_total: acc.ganancia_perdida_total + pos.ganancia_perdida,
+          porcentaje_ganancia_perdida: 0 // Se calcula después
+        }),
+        {
+          total_posiciones: 0,
+          total_invertido: 0,
+          valor_actual_total: 0,
+          ganancia_perdida_total: 0,
+          porcentaje_ganancia_perdida: 0
+        }
+      );
+
+      // Calcular porcentaje total
+      if (resumen.total_invertido > 0) {
+        resumen.porcentaje_ganancia_perdida = Number(
+          ((resumen.ganancia_perdida_total / resumen.total_invertido) * 100).toFixed(2)
+        );
+      }
+
+      return {
+        posiciones: posicionesDetalladas,
+        resumen
+      };
+
+    } catch (error: any) {
+      console.error('Error al obtener portafolio:', error);
+      throw new Error('Error al cargar el portafolio');
+    }
+  }
+
+  /**
+   * Liquida todas las posiciones del trader
+   * Requiere validación de contraseña previa
+   * 
+   * @param id_user - ID del trader
+   * @param user_alias - Alias del trader (para auditoría)
+   * @param password - Contraseña del trader para confirmación
+   * @returns Resultado de la liquidación con resumen completo
+   */
+  async liquidarTodo(
+    id_user: number,
+    user_alias: string,
+    password: string
+  ) {
+    try {
+      // 1. Validar contraseña del usuario
+      const user = await this.userRepository.findOne({
+        where: { id_user },
+        select: ['id_user', 'password']
+      });
+
+      if (!user) {
+        throw new Error('Usuario no encontrado');
+      }
+
+      const passwordValida = await bcrypt.compare(password, user.password);
+
+      if (!passwordValida) {
+        throw new Error('Contraseña incorrecta. No se puede proceder con la liquidación.');
+      }
+
+      // 2. Ejecutar el Stored Procedure de liquidación
+      const result = await AppDataSource.query(
+        `DECLARE @mensaje NVARCHAR(1000), @exito BIT;
+         EXEC usp_LiquidarTodoTrader 
+           @id_user = @0, 
+           @user_alias = @1,
+           @mensaje_resultado = @mensaje OUTPUT,
+           @exito = @exito OUTPUT;
+         SELECT @mensaje AS mensaje, @exito AS exito;`,
+        [id_user, user_alias]
+      );
+
+      const { mensaje, exito } = result[0];
+
+      if (!exito) {
+        throw new Error(mensaje);
+      }
+
+      return {
+        exito: true,
+        mensaje
+      };
+
+    } catch (error: any) {
+      console.error('Error en liquidación total:', error);
+      throw new Error(error.message || 'Error al liquidar el portafolio');
     }
   }
 }
