@@ -14,6 +14,10 @@ import deleteUserController from './modules/gestion_usuarios/Controllers/delete_
 import mercadosController from './modules/gestion_mercados/Controllers/mercados.controller';
 import empresasController from './modules/gestion_empresas/Controllers/empresas.controller';
 import preciosController from './modules/gestion_empresas/Controllers/precios.controller';
+import traderManagementController from './modules/gestion_usuarios/Controllers/trader-management.controller';
+import { ReportesController } from './modules/reportes/Controllers/reportes.controller';
+
+const reportesController = new ReportesController();
 
 async function bootstrap() {
   await AppDataSource.initialize();        // conecta TypeORM
@@ -72,6 +76,12 @@ async function bootstrap() {
   // rutas del módulo de gestión de empresas (Admin)
   app.use('/api/admin/empresas', empresasController);
   app.use('/api/admin/empresas', preciosController);
+
+  // rutas del módulo de gestión de traders (Admin)
+  app.use('/api/admin/traders', traderManagementController);
+
+  // rutas del módulo de reportes (Admin)
+  app.use('/api/admin/reportes', reportesController.router);
 
   // error handler centralizado (no repitas try/catch en cada ruta)
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

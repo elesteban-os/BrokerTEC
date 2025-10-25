@@ -10,11 +10,11 @@ import { IsEmail, IsNotEmpty, IsString, MinLength, MaxLength, IsOptional, IsArra
  *       properties:
  *         alias:
  *           type: string
- *           example: "nuevo_trader"
+ *           example: "testTrader01"
  *         email:
  *           type: string
  *           format: email
- *           example: "trader@brokertec.com"
+ *           example: "tradertest01@brokertec.com"
  *         nombre:
  *           type: string
  *           example: "Juan"
@@ -26,7 +26,7 @@ import { IsEmail, IsNotEmpty, IsString, MinLength, MaxLength, IsOptional, IsArra
  *           example: "González"
  *         password:
  *           type: string
- *           example: "MiPassword123!"
+ *           example: "Holahola3"
  *         country_origin:
  *           type: string
  *           example: "Costa Rica"
