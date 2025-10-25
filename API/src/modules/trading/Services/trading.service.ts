@@ -6,7 +6,7 @@ import { Repository } from 'typeorm';
 
 /**
  * Servicio para consultas de trading de traders
- * Portada (top empresas por mercado) y detalle de empresas
+ * Portada (top empresas por mercado), detalle de empresas, compra y venta de acciones
  * Solo accesible por usuarios con rol TRADER
  */
 export class TradingService {
@@ -134,6 +134,102 @@ export class TradingService {
     } catch (error) {
       console.error('Error al obtener detalle de empresa:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Compra acciones de una empresa
+   * Valida disponibilidad, fondos suficientes, y actualiza posiciones
+   * 
+   * @param id_user - ID del trader que compra
+   * @param user_alias - Alias del trader (para auditoría)
+   * @param id_empresa - ID de la empresa a comprar
+   * @param cantidad - Cantidad de acciones a comprar
+   * @returns Resultado de la operación con mensaje detallado
+   */
+  async comprarAcciones(
+    id_user: number,
+    user_alias: string,
+    id_empresa: number,
+    cantidad: number
+  ) {
+    try {
+      // Ejecutar el Stored Procedure
+      const result = await AppDataSource.query(
+        `DECLARE @mensaje NVARCHAR(500), @exito BIT;
+         EXEC usp_ComprarAcciones 
+           @id_user = @0, 
+           @id_empresa = @1, 
+           @cantidad = @2, 
+           @user_alias = @3,
+           @mensaje_resultado = @mensaje OUTPUT,
+           @exito = @exito OUTPUT;
+         SELECT @mensaje AS mensaje, @exito AS exito;`,
+        [id_user, id_empresa, cantidad, user_alias]
+      );
+
+      const { mensaje, exito } = result[0];
+
+      if (!exito) {
+        throw new Error(mensaje);
+      }
+
+      return {
+        exito: true,
+        mensaje
+      };
+
+    } catch (error: any) {
+      console.error('Error en compra de acciones:', error);
+      throw new Error(error.message || 'Error al realizar la compra');
+    }
+  }
+
+  /**
+   * Vende acciones de una empresa
+   * Valida que el trader tenga suficientes acciones y actualiza posiciones
+   * 
+   * @param id_user - ID del trader que vende
+   * @param user_alias - Alias del trader (para auditoría)
+   * @param id_empresa - ID de la empresa a vender
+   * @param cantidad - Cantidad de acciones a vender
+   * @returns Resultado de la operación con mensaje detallado (incluye ganancia/pérdida)
+   */
+  async venderAcciones(
+    id_user: number,
+    user_alias: string,
+    id_empresa: number,
+    cantidad: number
+  ) {
+    try {
+      // Ejecutar el Stored Procedure
+      const result = await AppDataSource.query(
+        `DECLARE @mensaje NVARCHAR(500), @exito BIT;
+         EXEC usp_VenderAcciones 
+           @id_user = @0, 
+           @id_empresa = @1, 
+           @cantidad = @2, 
+           @user_alias = @3,
+           @mensaje_resultado = @mensaje OUTPUT,
+           @exito = @exito OUTPUT;
+         SELECT @mensaje AS mensaje, @exito AS exito;`,
+        [id_user, id_empresa, cantidad, user_alias]
+      );
+
+      const { mensaje, exito } = result[0];
+
+      if (!exito) {
+        throw new Error(mensaje);
+      }
+
+      return {
+        exito: true,
+        mensaje
+      };
+
+    } catch (error: any) {
+      console.error('Error en venta de acciones:', error);
+      throw new Error(error.message || 'Error al realizar la venta');
     }
   }
 }
