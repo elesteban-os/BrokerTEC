@@ -46,6 +46,9 @@ export class Auditoria {
   @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
   saldo_nuevo!: number | null; // Saldo en wallet después
 
+  @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
+  ganancia_perdida!: number | null; // Ganancia o pérdida en ventas (positivo = ganancia, negativo = pérdida)
+
   // ===== INFORMACIÓN ADMINISTRATIVA =====
   @Column({ type: 'text', nullable: true })
   justificacion!: string | null; // Para deshabilitar usuarios, delisting, etc.
