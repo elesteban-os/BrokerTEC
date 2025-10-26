@@ -28,6 +28,8 @@ export class AnalistaController {
         this.router.get('/reportes/usuario/:alias/historial', this.getHistorialPorAlias.bind(this));
 
         this.router.get('/reportes/estadisticas/distribucion-acciones', this.getDistribucionAcciones.bind(this));
+
+        this.router.get('/reportes/top-empresas', this.getTopEmpresas.bind(this));
     }
 
     // Método del controlador para historial por empresa
@@ -116,6 +118,27 @@ export class AnalistaController {
 
             const distribucion = await this.analistaService.getDistribucionAcciones(id_mercado, id_empresa);
             res.status(200).json({ success: true, data: distribucion });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    // Método del controlador para Top Empresas
+    private async getTopEmpresas(req: Request, res: Response, next: NextFunction) {
+        try {
+            const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+            const id_mercado = req.query.id_mercado ? parseInt(req.query.id_mercado as string) : undefined;
+
+            // Validar límite
+            if (isNaN(limit) || limit < 1 || limit > 50) { // Limitar a un máximo razonable
+                return res.status(400).json({ success: false, message: 'El límite debe ser un número entre 1 y 50' });
+            }
+            if (id_mercado && isNaN(id_mercado)) {
+                return res.status(400).json({ success: false, message: 'ID de mercado inválido' });
+            }
+
+            const topEmpresas = await this.analistaService.getTopEmpresasPorCapitalizacion(limit, id_mercado);
+            res.status(200).json({ success: true, data: topEmpresas });
         } catch (error) {
             next(error);
         }

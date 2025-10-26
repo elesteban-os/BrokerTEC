@@ -3,20 +3,86 @@ import { Transaction } from '../../../entities/transaccion.entity'; // Asegúrat
 import { Empresa } from '../../../entities/empresa.entity'; // Asegúrate que el nombre y ruta sean correctos
 import { User } from '../../../entities/user.entity'; // Asegúrate que el nombre y ruta sean correctos
 import { TraderPortfolio } from '../../../entities/cartera_trader.entity'; // Asegúrate que el nombre y ruta sean correctos
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, getRepository } from 'typeorm';
+import { ViewEntity, ViewColumn, DataSource } from 'typeorm';
 
+// Definir una entidad para la VISTA
+@ViewEntity({
+    name: 'vw_Empresas_Capitalizacion',
+    expression: `
+        WITH PreciosRankeados AS (
+              SELECT
+                  PH.id_empresa,
+                  PH.precio AS PrecioActual,
+                  PH.fecha_hora AS FechaActual,
+                  ROW_NUMBER() OVER (PARTITION BY PH.id_empresa ORDER BY PH.fecha_hora DESC) AS rn_actual,
+                  LEAD(PH.precio, 1) OVER (PARTITION BY PH.id_empresa ORDER BY PH.fecha_hora DESC) AS PrecioAnterior
+              FROM
+                  precio_historico AS PH
+          )
+          SELECT
+              E.id_empresa,
+              E.nombre AS Empresa_Nombre,
+              M.nombre AS Mercado_Nombre,
+              E.estado AS Estado,
+              PR.PrecioActual,
+              E.acciones_totales,
+              E.acciones_disponibles AS Inventario_Tesoreria,
+              (PR.PrecioActual * E.acciones_totales) AS Capitalizacion_Calculada,
+              (PR.PrecioActual - PR.PrecioAnterior) / NULLIF(PR.PrecioAnterior, 0) * 100 AS Variacion_Pct
+          FROM
+              empresa AS E
+          JOIN
+              mercado AS M ON E.id_mercado = M.id_mercado
+          JOIN
+              PreciosRankeados AS PR ON E.id_empresa = PR.id_empresa
+          WHERE
+              PR.rn_actual = 1
+    `
+})
+
+export class VwEmpresasCapitalizacion {
+    @ViewColumn()
+      id_empresa!: number;
+
+      @ViewColumn()
+      Empresa_Nombre!: string;
+
+      @ViewColumn()
+      Mercado_Nombre!: string;
+
+      @ViewColumn()
+      Estado!: string;
+
+      @ViewColumn()
+      PrecioActual!: number;
+
+      @ViewColumn()
+      acciones_totales!: number; 
+
+      @ViewColumn()
+      Inventario_Tesoreria!: number; 
+
+      @ViewColumn()
+      Capitalizacion_Calculada!: number;
+
+      @ViewColumn()
+      Variacion_Pct!: number | null;
+}
 
 export class AnalistaService {
     private transactionRepository: Repository<Transaction>;
     private empresaRepository: Repository<Empresa>;
     private userRepository: Repository<User>;
     private traderPortfolioRepository: Repository<TraderPortfolio>;
+    private viewEmpresasRepository: Repository<VwEmpresasCapitalizacion>;
 
     constructor() {
         this.transactionRepository = AppDataSource.getRepository(Transaction);
         this.empresaRepository = AppDataSource.getRepository(Empresa);
         this.userRepository = AppDataSource.getRepository(User);
         this.traderPortfolioRepository = AppDataSource.getRepository(TraderPortfolio);
+        this.viewEmpresasRepository = AppDataSource.getRepository(VwEmpresasCapitalizacion)
     }
 
     /**
@@ -177,5 +243,33 @@ export class AnalistaService {
         return { estadisticas };
     }
 
-    
+    /**
+     * TOPS
+     * Obtener las Top N empresas por capitalizacion de mercado
+     * REQUISITO: Tops
+     */
+    async getTopEmpresasPorCapitalizacion(topN: number = 5, id_mercado?: number) {
+        const query = this.viewEmpresasRepository
+            .createQueryBuilder('vw')
+            .where('vw.Estado = :estado', { estado: 'Listed' });
+
+        if (id_mercado) {
+            query.innerJoin(Empresa, 'e', 'e.id_empresa = vw.id_empresa')
+                 .andWhere('e.id_mercado = :id_mercado', { id_mercado });
+        }
+
+        query.orderBy('vw.Capitalizacion_Calculada', 'DESC')
+             .limit(topN);
+
+        const topEmpresas = await query.getMany();
+
+        return topEmpresas.map(e => ({
+            id_empresa: e.id_empresa,
+            nombre: e.Empresa_Nombre,
+            mercado: e.Mercado_Nombre,
+            precio_actual: e.PrecioActual,
+            capitalizacion: e.Capitalizacion_Calculada,
+            variacion_porcentual: e.Variacion_Pct !== null ? parseFloat(e.Variacion_Pct.toFixed(2)) : null,
+        }));
+    }
 }
