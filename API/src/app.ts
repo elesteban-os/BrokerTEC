@@ -18,10 +18,12 @@ import traderManagementController from './modules/gestion_usuarios/Controllers/t
 import { ReportesController } from './modules/reportes/Controllers/reportes.controller';
 import { WalletController } from './modules/wallet/Controllers/wallet.controller';
 import { TradingController } from './modules/trading/Controllers/trading.controller';
+import { AnalistaController } from './modules/analista/Controllers/analista.controller';
 
 const reportesController = new ReportesController();
 const walletController = new WalletController();
 const tradingController = new TradingController();
+const analistaController = new AnalistaController();
 
 async function bootstrap() {
   await AppDataSource.initialize();        // conecta TypeORM
@@ -92,6 +94,9 @@ async function bootstrap() {
 
   // rutas del módulo de trading (Trader)
   app.use('/api/trader', tradingController.router);
+
+  // rutas del modulo de analista (Analist)
+  app.use('/api/analista', analistaController.router);
 
   // error handler centralizado (no repitas try/catch en cada ruta)
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
