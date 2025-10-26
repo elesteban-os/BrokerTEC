@@ -1,8 +1,8 @@
 import { AppDataSource } from '../../../config/data-source';
-import { Transaction } from '../../../entities/transaction.entity'; // Asegúrate que el nombre y ruta sean correctos
+import { Transaction } from '../../../entities/transaccion.entity'; // Asegúrate que el nombre y ruta sean correctos
 import { Empresa } from '../../../entities/empresa.entity'; // Asegúrate que el nombre y ruta sean correctos
 import { User } from '../../../entities/user.entity'; // Asegúrate que el nombre y ruta sean correctos
-import { TraderPortfolio } from '../../../entities/trader-portfolio.entity'; // Asegúrate que el nombre y ruta sean correctos
+import { TraderPortfolio } from '../../../entities/cartera_trader.entity'; // Asegúrate que el nombre y ruta sean correctos
 import { Repository, Between } from 'typeorm';
 
 

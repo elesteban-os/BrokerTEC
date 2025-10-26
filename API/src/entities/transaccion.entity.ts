@@ -9,7 +9,7 @@ import {
   CreateDateColumn
 } from 'typeorm';
 import { User } from './user.entity';    // Importamos la Entity de Usuario (UUID PK)
-import { Company } from './company.entity'; // Importamos la Entity de Empresa (INT PK)
+import { Empresa } from './empresa.entity'; // Importamos la Entity de Empresa (INT PK)
 
 @Entity('transaccion') // Nombre de la tabla en SQL Server
 @Check(`"tipo" IN ('Buy', 'Sell')`)
@@ -60,8 +60,7 @@ export class Transaction {
   user!: User;
   
   // Relación Many-to-One: Una transacción se refiere a una Empresa
-  @ManyToOne(() => Company, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
+  @ManyToOne(() => Empresa, { onDelete: 'CASCADE', onUpdate: 'CASCADE' })
   @JoinColumn({ name: 'id_empresa' }) 
-  company!: Company;
-    empresa: any;
+  empresa!: Empresa;
 }
