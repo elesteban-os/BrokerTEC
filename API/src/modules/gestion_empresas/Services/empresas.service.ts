@@ -146,8 +146,14 @@ export class EmpresasService {
     adminAlias: string,
     adminRole: string
   ): Promise<Empresa> {
-    // 1. Verificar que la empresa existe
-    const empresa = await this.findOne(id);
+    // 1. Verificar que la empresa existe (sin cargar relaciones para evitar conflictos)
+    const empresa = await this.empresaRepository.findOne({
+      where: { id_empresa: id }
+    });
+
+    if (!empresa) {
+      throw new Error('EMPRESA_NOT_FOUND');
+    }
 
     // 2. Si se está actualizando el mercado, verificar que exista y esté habilitado
     if (dto.id_mercado && dto.id_mercado !== empresa.id_mercado) {
@@ -183,21 +189,27 @@ export class EmpresasService {
     if (dto.habilitado !== undefined) empresa.habilitado = dto.habilitado;
 
     // 5. Guardar cambios
-    const empresaActualizada = await this.empresaRepository.save(empresa);
+    await this.empresaRepository.save(empresa);
 
-    // 6. Registrar auditoría
+    // 6. Recargar la empresa con todas sus relaciones para retornar datos completos
+    const empresaActualizada = await this.empresaRepository.findOne({
+      where: { id_empresa: id },
+      relations: ['mercado', 'precios_historicos', 'posiciones']
+    });
+
+    // 7. Registrar auditoría
     await this.auditoriaService.registrar({
       id_user: adminId,
       user_alias: adminAlias,
       user_role: adminRole,
       accion: TipoAccionAuditoria.EMPRESA_UPDATE,
       entidad_afectada: EntidadAfectada.EMPRESAS,
-      id_registro_afectado: empresaActualizada.id_empresa,
-      descripcion: `Empresa actualizada: ${empresaActualizada.nombre}`,
+      id_registro_afectado: empresaActualizada!.id_empresa,
+      descripcion: `Empresa actualizada: ${empresaActualizada!.nombre}`,
       exitosa: true
     });
 
-    return empresaActualizada;
+    return empresaActualizada!;
   }
 
   /**
