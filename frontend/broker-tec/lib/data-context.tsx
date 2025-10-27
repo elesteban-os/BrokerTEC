@@ -1,6 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { get } from "react-hook-form"
 
 export interface Market {
   id: string
@@ -209,6 +210,58 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createdAt: new Date("2024-01-20"),
     },
   ])
+  const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([
+    // Apple (AAPL) history
+    {
+      id: "1",
+      companyId: "1",
+      price: 170.5,
+      timestamp: new Date("2024-02-25T10:00:00"),
+    },
+    {
+      id: "2",
+      companyId: "1",
+      price: 172.3,
+      timestamp: new Date("2024-02-26T10:00:00"),
+    },
+    {
+      id: "3",
+      companyId: "1",
+      price: 175.2,
+      timestamp: new Date("2024-02-27T10:00:00"),
+    },
+    {
+      id: "4",
+      companyId: "1",
+      price: 176.8,
+      timestamp: new Date("2024-02-28T10:00:00"),
+    },
+    {
+      id: "5",
+      companyId: "1",
+      price: 178.5,
+      timestamp: new Date("2024-02-29T10:00:00"),
+    },
+    // Microsoft (MSFT) history
+    {
+      id: "6",
+      companyId: "2",
+      price: 410.2,
+      timestamp: new Date("2024-02-25T10:00:00"),
+    },
+    {
+      id: "7",
+      companyId: "2",
+      price: 412.5,
+      timestamp: new Date("2024-02-26T10:00:00"),
+    },
+    {
+      id: "8",
+      companyId: "2",
+      price: 415.8,
+      timestamp: new Date("2024-02-27T10:00:00"),
+    },
+  ])
   // GET companies helper (exposed) - puedes llamarla para refrescar en cualquier parte
   const getCompanies = async (): Promise<{ success: boolean; message: string }> => {
     console.log("Fetching companies from API...")
@@ -246,24 +299,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
       })) as Company[]
       console.log("Fetched companies:", list)
 
-      // Eliminar todo el historial de precios
-      setPriceHistory([])
-
-      // Guardar el historial de precios
+      // Reemplazar el historial de precios en un solo set (más eficiente)
+      const newHistories: PriceHistory[] = []
       for (const company of payload.data || []) {
         const history = company.precios_historicos || []
         for (const p of history) {
-          setPriceHistory((prev) => [
-            ...prev,
-            {
-              id: p.id_precio ?? String(Date.now()),
-              companyId: company.id_empresa ?? "",
-              price: p.precio ?? 0,
-              timestamp: new Date(p.fecha_hora) ?? new Date(),
-            }
-          ])
+          newHistories.push({
+            id: p.id_precio ?? String(Date.now()),
+            companyId: company.id_empresa ?? "",
+            price: p.precio ?? 0,
+            timestamp: p.fecha_hora ? new Date(p.fecha_hora) : new Date(),
+          })
         }
       }
+      setPriceHistory(newHistories)
 
       setCompanies(list)
       return { success: true, message: "Empresas cargadas" }
@@ -378,59 +427,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       role: "analista",
       status: "active",
       createdAt: new Date("2024-01-05"),
-    },
-  ])
-
-  const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([
-    // Apple (AAPL) history
-    {
-      id: "1",
-      companyId: "1",
-      price: 170.5,
-      timestamp: new Date("2024-02-25T10:00:00"),
-    },
-    {
-      id: "2",
-      companyId: "1",
-      price: 172.3,
-      timestamp: new Date("2024-02-26T10:00:00"),
-    },
-    {
-      id: "3",
-      companyId: "1",
-      price: 175.2,
-      timestamp: new Date("2024-02-27T10:00:00"),
-    },
-    {
-      id: "4",
-      companyId: "1",
-      price: 176.8,
-      timestamp: new Date("2024-02-28T10:00:00"),
-    },
-    {
-      id: "5",
-      companyId: "1",
-      price: 178.5,
-      timestamp: new Date("2024-02-29T10:00:00"),
-    },
-    // Microsoft (MSFT) history
-    {
-      id: "6",
-      companyId: "2",
-      price: 410.2,
-      timestamp: new Date("2024-02-25T10:00:00"),
-    },
-    {
-      id: "7",
-      companyId: "2",
-      price: 412.5,
-      timestamp: new Date("2024-02-26T10:00:00"),
-    },
-    {
-      id: "8",
-      companyId: "2",
-      price: 415.8,
-      timestamp: new Date("2024-02-27T10:00:00"),
     },
   ])
 
@@ -596,6 +592,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const bodyJSON = {
       "nombre": name,
       "habilitado": market.enabled,
+      
     }
 
     try {
@@ -663,20 +660,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // const data = await response.json()
       // if (!data.success) return data
 
-      const newCompany: Company = {
-        ...company,
-        id: Date.now().toString(),
-        enabled: true,
-        createdAt: new Date(),
+      const id_mercado = parseInt(company.marketId)
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+      const bodyJSON = {
+        "nombre": company.name,
+        "id_mercado": id_mercado,
+        "precio_actual": company.currentPrice,
+        "cantidad_acciones": company.totalShares,
       }
-      setCompanies([...companies, newCompany])
 
-      // Add initial price to history
-      addPriceHistory({
-        companyId: newCompany.id,
-        price: company.currentPrice,
-        timestamp: new Date(),
+      const response = await fetch("/api/admin/empresas", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bodyJSON),
       })
+      const data = await response.json()
+      if (!data.success) {
+        throw new Error(data?.message || "Fallo al crear empresa")
+      }
+      
+      await getCompanies()
 
       return { success: true, message: "Empresa creada exitosamente" }
     } catch (error) {
@@ -689,25 +695,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
     company: Partial<Company>,
   ): Promise<{ success: boolean; message: string }> => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch(`/api/companies/${id}`, {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(company)
-      // })
-      // const data = await response.json()
-      // if (!data.success) return data
-
-      setCompanies(companies.map((c) => (c.id === id ? { ...c, ...company } : c)))
-
-      // If price changed, add to history
-      if (company.currentPrice) {
-        addPriceHistory({
-          companyId: id,
-          price: company.currentPrice,
-          timestamp: new Date(),
-        })
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+      const bodyJSON = {
+        "nombre": company.name,
+        "id_mercado": company.marketId,
+        "precio_actual": company.currentPrice,
+        "cantidad_acciones": company.totalShares,
+        "habilitado": company.enabled,
       }
+      console.log("Updating company with data:", bodyJSON)
+      const response = await fetch(`/api/admin/empresas/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bodyJSON),
+      })
+      const data = await response.json()
+      if (!data.success) {
+        throw new Error(data?.message || "Fallo al actualizar empresa")
+      }
+
+      await getCompanies()
 
       return { success: true, message: "Empresa actualizada exitosamente" }
     } catch (error) {
@@ -730,48 +740,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // const data = await response.json()
       // if (!data.success) return data
 
-      // Find company
-      const company = companies.find((c) => c.id === id)
-      if (!company) {
-        return { success: false, message: "Empresa no encontrada" }
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+      const response = await fetch(`/api/admin/empresas/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason }),
+      })
+      const data = await response.json()
+      if (!data.success) {
+        throw new Error(data?.message || "Fallo al deslistar empresa")
       }
 
-      // Use current price for liquidation
-      const liquidationPrice = company.currentPrice
+      getCompanies()
 
-      // Find positions for this company
-      const companyPositions = positions.filter((p) => p.companyId === id)
-
-      if (companyPositions.length > 0) {
-        // Create liquidation transactions
-        const newTransactions: Transaction[] = companyPositions.map((position) => ({
-          id: `${Date.now()}-${position.id}`,
-          userId: position.userId,
-          companyId: id,
-          type: "liquidation",
-          shares: position.shares,
-          price: liquidationPrice,
-          total: position.shares * liquidationPrice,
-          reason,
-          createdAt: new Date(),
-        }))
-
-        // Add transactions
-        setTransactions([...transactions, ...newTransactions])
-
-        // Remove positions
-        setPositions(positions.filter((p) => p.companyId !== id))
-      }
-
-      setCompanies(companies.filter((c) => c.id !== id))
-
-      return {
-        success: true,
-        message:
-          companyPositions.length > 0
-            ? `Empresa deslistada y eliminada. ${companyPositions.length} posiciones liquidadas.`
-            : "Empresa deslistada y eliminada exitosamente.",
-      }
+      return { success: true, message: "Empresa deslistada exitosamente" }
+      
     } catch (error) {
       return { success: false, message: "Error al deslistar la empresa" }
     }
