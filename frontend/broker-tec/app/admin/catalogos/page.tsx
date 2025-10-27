@@ -1,6 +1,6 @@
 "use client"
 
-import { use, useState } from "react"
+import { useState } from "react"
 import { useData } from "@/lib/data-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +10,7 @@ import { MarketsTable } from "@/components/admin/markets-table"
 import { CompaniesTable } from "@/components/admin/companies-table"
 import { MarketDialog } from "@/components/admin/market-dialog"
 import { CompanyDialog } from "@/components/admin/company-dialog"
+import { ResultDialog } from "@/components/admin/result-dialog"
 import type { Market, Company } from "@/lib/data-context"
 
 export default function CatalogosPage() {
@@ -18,6 +19,8 @@ export default function CatalogosPage() {
   const [companyDialogOpen, setCompanyDialogOpen] = useState(false)
   const [editingMarket, setEditingMarket] = useState<Market | null>(null)
   const [editingCompany, setEditingCompany] = useState<Company | null>(null)
+  const [resultDialogOpen, setResultDialogOpen] = useState(false)
+  const [operationResult, setOperationResult] = useState<{ success: boolean; message: string } | null>(null)
 
   const handleEditMarket = (market: Market) => {
     setEditingMarket(market)
@@ -37,6 +40,11 @@ export default function CatalogosPage() {
   const handleCloseCompanyDialog = () => {
     setCompanyDialogOpen(false)
     setEditingCompany(null)
+  }
+
+  const handleOperationResult = (result: { success: boolean; message: string }) => {
+    setOperationResult(result)
+    setResultDialogOpen(true)
   }
 
   return (
@@ -62,7 +70,12 @@ export default function CatalogosPage() {
               </Button>
             </CardHeader>
             <CardContent>
-              <CompaniesTable companies={companies} markets={markets} onEdit={handleEditCompany} />
+              <CompaniesTable
+                companies={companies}
+                markets={markets}
+                onEdit={handleEditCompany}
+                onResult={handleOperationResult}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -72,9 +85,7 @@ export default function CatalogosPage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div className="space-y-1">
                 <CardTitle>Mercados</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Todos los mercados operan en USD
-                </p>
+                <p className="text-sm text-muted-foreground">Todos los mercados operan en USD</p>
               </div>
               <Button onClick={() => setMarketDialogOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -82,8 +93,7 @@ export default function CatalogosPage() {
               </Button>
             </CardHeader>
             <CardContent>
-              {/* @ts-ignore */}
-              <MarketsTable markets={markets} onEdit={handleEditMarket} />
+              <MarketsTable onEdit={handleEditMarket} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -96,7 +106,10 @@ export default function CatalogosPage() {
         onClose={handleCloseCompanyDialog}
         company={editingCompany}
         markets={markets}
+        onResult={handleOperationResult}
       />
+
+      <ResultDialog open={resultDialogOpen} onClose={() => setResultDialogOpen(false)} result={operationResult} />
     </div>
   )
 }
