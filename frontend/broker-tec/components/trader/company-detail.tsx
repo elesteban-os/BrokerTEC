@@ -301,7 +301,7 @@ export function CompanyDetail() {
           <div className="w-full">
             <Button onClick={() => router.push(`/trader/trade/${companyData.id_empresa}`)}
              >
-              Operar
+              Comprar/Vender
             </Button>
           </div>
         </div>
