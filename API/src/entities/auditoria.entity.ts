@@ -28,7 +28,7 @@ export class Auditoria {
   id_registro_afectado!: number | null; // ID del registro modificado
 
   // ===== ESPECÍFICO PARA TRADING =====
-  @Column({ type: 'varchar', length: 10, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   ticker_empresa!: string | null; // "AAPL", "GOOGL", "AMZN"
 
   @Column({ type: 'int', nullable: true })

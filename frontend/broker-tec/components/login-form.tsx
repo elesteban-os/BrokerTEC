@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,52 +12,85 @@ export function LoginForm() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
+  // ---------------------------------------------
+  // FUNCIÓN PRINCIPAL DE LOGIN
+  // ---------------------------------------------
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
     setLoading(true)
+
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("http://localhost:3000/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ "alias": alias, "password": password }),
+        body: JSON.stringify({ alias, password }),
       })
+
+      const data = await res.json()
+
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
         throw new Error(data?.message || "Credenciales inválidas")
       }
-      const data = await res.json()
-      console.log("Login exitoso", data)
-      // TODO: redirigir (por ejemplo, usando router.push('/dashboard'))
-      // Guardar datos de sesión en localStorage
-      localStorage.setItem("user", JSON.stringify(data.user))
-      localStorage.setItem("authToken", data.access_token)
-      localStorage.setItem("refreshToken", data.refresh_token)
 
-      const role = data.user?.role?.role_name
-      console.log("User role:", role)
-      if (role === "ADMINISTRADOR") {
-        window.location.href = "/admin"
+      console.log("✅ Login exitoso:", data)
+
+      // ------------------------------------------------
+      // GUARDAR TODOS LOS DATOS IMPORTANTES EN LOCALSTORAGE
+      // ------------------------------------------------
+      localStorage.setItem("access_token", data.access_token)
+      localStorage.setItem("refresh_token", data.refresh_token)
+
+      // Datos del usuario
+      localStorage.setItem("user_id", String(data.user.id_user))
+      localStorage.setItem("user_alias", data.user.alias)
+      localStorage.setItem("user_email", data.user.email)
+      localStorage.setItem("user_nombre", data.user.nombre || "")
+      localStorage.setItem("user_apellido1", data.user.apellido1 || "")
+      localStorage.setItem("user_role_id", String(data.user.role.id_role))
+      localStorage.setItem("user_role_name", data.user.role.role_name)
+
+      // ------------------------------------------------
+      // REDIRECCIONAR SEGÚN EL ROL
+      // ------------------------------------------------
+      const roleName = data.user.role.role_name?.toUpperCase()
+
+      if (roleName === "ADMIN") {
+        router.push("/admin")
+      } else if (roleName === "ANALYST") {
+        router.push("/analyst")
+      } else if (roleName === "TRADER") {
+        router.push("/trader")
+      } else {
+        setError("Rol de usuario desconocido. Contacte al administrador.")
       }
 
-      const user = JSON.parse(localStorage.getItem("user") || "{}")
-      console.log("User data:", user)
     } catch (err: any) {
+      console.error("❌ Error en login:", err)
       setError(err.message || "Error de autenticación")
     } finally {
       setLoading(false)
     }
   }
 
+  // ---------------------------------------------
+  // INTERFAZ DE USUARIO
+  // ---------------------------------------------
   return (
     <div className="space-y-8">
-      {/* Logo and Header */}
+      {/* Logo y encabezado */}
       <div className="space-y-2">
         <div className="flex items-center gap-2 mb-6">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-            <svg className="w-6 h-6 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="w-6 h-6 text-primary-foreground"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
             </svg>
           </div>
@@ -67,7 +100,7 @@ export function LoginForm() {
         <p className="text-muted-foreground">Ingresa tus credenciales para acceder a tu cuenta</p>
       </div>
 
-      {/* Login Form */}
+      {/* Formulario */}
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-4">
           <div className="space-y-2">
@@ -95,12 +128,14 @@ export function LoginForm() {
               className="h-11"
             />
           </div>
-
-          
         </div>
+
+        {/* Error */}
         {error && <p className="text-sm text-red-500">{error}</p>}
+
+        {/* Botón de enviar */}
         <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={loading}>
-          Iniciar sesión
+          {loading ? "Iniciando sesión..." : "Iniciar sesión"}
         </Button>
       </form>
     </div>
