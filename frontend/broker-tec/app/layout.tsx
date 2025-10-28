@@ -1,36 +1,40 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import "./globals.css"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import { Toaster } from "@/components/ui/toaster"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: {
-    default: "BrokerTEC",
-    template: "%s | BrokerTEC", 
-  },
-};
+  title: "BrokerTEC",
+  description: "Plataforma de trading para Traders — BrokerTEC",
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en">
+    <html lang="es">
+      <head>
+        {/* Activa diseño responsive en móviles */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta name="theme-color" content="#ffffff" />
+        <link rel="icon" href="/favicon.ico" />
+      </head>
+
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.className} min-h-screen bg-white text-gray-900 antialiased`}
       >
-        {children}
+        {/* Contenido principal de la app */}
+        <div className="flex flex-col min-h-screen">
+          <main className="flex-1 flex flex-col">{children}</main>
+        </div>
+
+        {/* Sistema de notificaciones global */}
+        <Toaster />
       </body>
     </html>
-  );
+  )
 }

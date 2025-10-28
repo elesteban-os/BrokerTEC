@@ -1,5 +1,6 @@
 ﻿import 'reflect-metadata'; // siempre primero para decorators
 import express from 'express';
+import cors from "cors";
 import swaggerUi from 'swagger-ui-express';
 import { AppDataSource } from './config/data-source';
 import { ENV } from './config/env';
@@ -27,8 +28,14 @@ async function bootstrap() {
   await AppDataSource.initialize();        // conecta TypeORM
 
   const app = express();
-  app.use(express.json());
+  app.use(cors({
+  origin: "http://localhost:3001",  // tu frontend
+  credentials: true,                 // permite cookies o tokens si los usas
+}));
 
+  app.use(express.json());
+  
+  
   // Configuración de Swagger UI
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
   

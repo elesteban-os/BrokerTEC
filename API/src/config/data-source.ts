@@ -25,6 +25,7 @@ export const AppDataSource = new DataSource({
     trustServerCertificate: ENV.DB_TRUST_SERVER_CERT,
   },
   synchronize: false,               // en prod: SIEMPRE false; usa migraciones
+  requestTimeout:300000,
   logging: false,
   entities: entityGlobs,
   // rutas de migraciones para dev (ts-node) y build (js)

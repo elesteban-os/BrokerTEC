@@ -30,30 +30,24 @@ export class TradingService {
   /**
    * Obtiene la portada con top empresas agrupadas por mercado
    * Solo muestra mercados y empresas habilitados
-   * 
-   * @returns Lista de mercados con sus top empresas (ordenadas por capitalización)
    */
   async getPortada() {
     try {
-      // Obtener todos los mercados habilitados
       const mercados = await this.mercadoRepository.find({
         where: { habilitado: true },
         order: { nombre: 'ASC' }
       });
 
-      // Para cada mercado, obtener sus top empresas
       const portada = await Promise.all(
         mercados.map(async (mercado) => {
-          // Obtener empresas habilitadas del mercado, ordenadas por capitalización
           const empresas = await this.empresaRepository.find({
-            where: { 
+            where: {
               id_mercado: mercado.id_mercado,
-              habilitado: true 
+              habilitado: true
             },
-            order: { precio_actual: 'DESC' } // Aproximación: mayor precio suele ser mayor cap
+            order: { precio_actual: 'DESC' }
           });
 
-          // Calcular capitalización y tomar top empresas
           const empresasConCapitalizacion = empresas
             .map(empresa => ({
               id_empresa: empresa.id_empresa,
@@ -63,7 +57,7 @@ export class TradingService {
               capitalizacion: empresa.precio_actual * empresa.cantidad_acciones
             }))
             .sort((a, b) => b.capitalizacion - a.capitalizacion)
-            .slice(0, 10); // Top 10 empresas por mercado
+            .slice(0, 10);
 
           return {
             id_mercado: mercado.id_mercado,
@@ -74,7 +68,6 @@ export class TradingService {
         })
       );
 
-      // Filtrar mercados que tengan al menos una empresa
       return portada.filter(m => m.cantidad_empresas > 0);
 
     } catch (error) {
@@ -84,31 +77,18 @@ export class TradingService {
   }
 
   /**
-   * Obtiene el detalle completo de una empresa
-   * Incluye información general e histórico de precios
-   * 
-   * @param id_empresa - ID de la empresa a consultar
-   * @param dias - Número de días de histórico (por defecto 30)
-   * @returns Información completa de la empresa con histórico de precios
+   * Obtiene el detalle completo de una empresa (con histórico de precios)
    */
   async getDetalleEmpresa(id_empresa: number, dias: number = 30) {
     try {
-      // Buscar la empresa con su mercado
       const empresa = await this.empresaRepository.findOne({
         where: { id_empresa },
         relations: ['mercado']
       });
 
-      if (!empresa) {
-        throw new Error('Empresa no encontrada');
-      }
+      if (!empresa) throw new Error('Empresa no encontrada');
+      if (!empresa.habilitado) throw new Error('Esta empresa está deshabilitada y no se puede consultar');
 
-      // Validar que la empresa esté habilitada
-      if (!empresa.habilitado) {
-        throw new Error('Esta empresa está deshabilitada y no se puede consultar');
-      }
-
-      // Obtener histórico de precios (últimos N días)
       const fechaInicio = new Date();
       fechaInicio.setDate(fechaInicio.getDate() - dias);
 
@@ -118,7 +98,6 @@ export class TradingService {
         take: dias
       });
 
-      // Información completa de la empresa
       return {
         id_empresa: empresa.id_empresa,
         nombre: empresa.nombre,
@@ -145,14 +124,43 @@ export class TradingService {
   }
 
   /**
-   * Compra acciones de una empresa
-   * Valida disponibilidad, fondos suficientes, y actualiza posiciones
-   * 
-   * @param id_user - ID del trader que compra
-   * @param user_alias - Alias del trader (para auditoría)
-   * @param id_empresa - ID de la empresa a comprar
-   * @param cantidad - Cantidad de acciones a comprar
-   * @returns Resultado de la operación con mensaje detallado
+   * 🔹 NUEVO MÉTODO:
+   * Obtiene la posición actual del trader en una empresa
+   * Si no tiene, devuelve null
+   */
+  async getPosicionTrader(id_user: number, id_empresa: number) {
+    try {
+      const posicion = await this.posicionRepository.findOne({
+        where: { id_user, id_empresa },
+        relations: ['empresa']
+      });
+
+      if (!posicion) {
+        return null;
+      }
+
+      return {
+        id_posicion: posicion.id_posicion,
+        id_user: posicion.id_user,
+        id_empresa: posicion.id_empresa,
+        cantidad: posicion.cantidad,
+        costo_promedio: Number(posicion.costo_promedio),
+        fecha_creacion: posicion.fecha_creacion,
+        fecha_actualizacion: posicion.fecha_actualizacion,
+        empresa: {
+          id_empresa: posicion.empresa.id_empresa,
+          nombre: posicion.empresa.nombre,
+          precio_actual: posicion.empresa.precio_actual
+        }
+      };
+    } catch (error: any) {
+      console.error('❌ Error en TradingService.getPosicionTrader:', error);
+      throw new Error('Error al obtener posición del trader: ' + error.message);
+    }
+  }
+
+  /**
+   * Compra acciones (SP: usp_ComprarAcciones)
    */
   async comprarAcciones(
     id_user: number,
@@ -161,7 +169,6 @@ export class TradingService {
     cantidad: number
   ) {
     try {
-      // Ejecutar el Stored Procedure
       const result = await AppDataSource.query(
         `DECLARE @mensaje NVARCHAR(500), @exito BIT;
          EXEC usp_ComprarAcciones 
@@ -176,16 +183,9 @@ export class TradingService {
       );
 
       const { mensaje, exito } = result[0];
+      if (!exito) throw new Error(mensaje);
 
-      if (!exito) {
-        throw new Error(mensaje);
-      }
-
-      return {
-        exito: true,
-        mensaje
-      };
-
+      return { exito: true, mensaje };
     } catch (error: any) {
       console.error('Error en compra de acciones:', error);
       throw new Error(error.message || 'Error al realizar la compra');
@@ -193,14 +193,7 @@ export class TradingService {
   }
 
   /**
-   * Vende acciones de una empresa
-   * Valida que el trader tenga suficientes acciones y actualiza posiciones
-   * 
-   * @param id_user - ID del trader que vende
-   * @param user_alias - Alias del trader (para auditoría)
-   * @param id_empresa - ID de la empresa a vender
-   * @param cantidad - Cantidad de acciones a vender
-   * @returns Resultado de la operación con mensaje detallado (incluye ganancia/pérdida)
+   * Vende acciones (SP: usp_VenderAcciones)
    */
   async venderAcciones(
     id_user: number,
@@ -209,7 +202,6 @@ export class TradingService {
     cantidad: number
   ) {
     try {
-      // Ejecutar el Stored Procedure
       const result = await AppDataSource.query(
         `DECLARE @mensaje NVARCHAR(500), @exito BIT;
          EXEC usp_VenderAcciones 
@@ -224,16 +216,9 @@ export class TradingService {
       );
 
       const { mensaje, exito } = result[0];
+      if (!exito) throw new Error(mensaje);
 
-      if (!exito) {
-        throw new Error(mensaje);
-      }
-
-      return {
-        exito: true,
-        mensaje
-      };
-
+      return { exito: true, mensaje };
     } catch (error: any) {
       console.error('Error en venta de acciones:', error);
       throw new Error(error.message || 'Error al realizar la venta');
@@ -242,14 +227,9 @@ export class TradingService {
 
   /**
    * Obtiene el portafolio completo del trader
-   * Muestra todas sus posiciones con ganancias/pérdidas no realizadas
-   * 
-   * @param id_user - ID del trader
-   * @returns Lista de posiciones con detalles y resumen total
    */
   async getPortafolio(id_user: number) {
     try {
-      // Obtener todas las posiciones del trader con información de empresas
       const posiciones = await this.posicionRepository.find({
         where: { id_user },
         relations: ['empresa'],
@@ -269,7 +249,6 @@ export class TradingService {
         };
       }
 
-      // Calcular detalles para cada posición
       const posicionesDetalladas = posiciones.map(posicion => {
         const valor_invertido = posicion.cantidad * posicion.costo_promedio;
         const valor_actual_total = posicion.cantidad * posicion.empresa.precio_actual;
@@ -281,7 +260,7 @@ export class TradingService {
           empresa: {
             id_empresa: posicion.empresa.id_empresa,
             nombre: posicion.empresa.nombre,
-            ticker: posicion.empresa.nombre // Si tienes un campo ticker separado, úsalo
+            ticker: posicion.empresa.nombre
           },
           cantidad_acciones: posicion.cantidad,
           costo_promedio: posicion.costo_promedio,
@@ -294,14 +273,13 @@ export class TradingService {
         };
       });
 
-      // Calcular resumen total
       const resumen = posicionesDetalladas.reduce(
         (acc, pos) => ({
           total_posiciones: acc.total_posiciones + 1,
           total_invertido: acc.total_invertido + pos.valor_invertido,
           valor_actual_total: acc.valor_actual_total + pos.valor_actual_total,
           ganancia_perdida_total: acc.ganancia_perdida_total + pos.ganancia_perdida,
-          porcentaje_ganancia_perdida: 0 // Se calcula después
+          porcentaje_ganancia_perdida: 0
         }),
         {
           total_posiciones: 0,
@@ -312,18 +290,13 @@ export class TradingService {
         }
       );
 
-      // Calcular porcentaje total
       if (resumen.total_invertido > 0) {
         resumen.porcentaje_ganancia_perdida = Number(
           ((resumen.ganancia_perdida_total / resumen.total_invertido) * 100).toFixed(2)
         );
       }
 
-      return {
-        posiciones: posicionesDetalladas,
-        resumen
-      };
-
+      return { posiciones: posicionesDetalladas, resumen };
     } catch (error: any) {
       console.error('Error al obtener portafolio:', error);
       throw new Error('Error al cargar el portafolio');
@@ -331,13 +304,7 @@ export class TradingService {
   }
 
   /**
-   * Liquida todas las posiciones del trader
-   * Requiere validación de contraseña previa
-   * 
-   * @param id_user - ID del trader
-   * @param user_alias - Alias del trader (para auditoría)
-   * @param password - Contraseña del trader para confirmación
-   * @returns Resultado de la liquidación con resumen completo
+   * Liquida todas las posiciones del trader (SP: usp_LiquidarTodoTrader)
    */
   async liquidarTodo(
     id_user: number,
@@ -345,23 +312,16 @@ export class TradingService {
     password: string
   ) {
     try {
-      // 1. Validar contraseña del usuario
       const user = await this.userRepository.findOne({
         where: { id_user },
         select: ['id_user', 'password']
       });
 
-      if (!user) {
-        throw new Error('Usuario no encontrado');
-      }
+      if (!user) throw new Error('Usuario no encontrado');
 
       const passwordValida = await bcrypt.compare(password, user.password);
+      if (!passwordValida) throw new Error('Contraseña incorrecta. No se puede proceder con la liquidación.');
 
-      if (!passwordValida) {
-        throw new Error('Contraseña incorrecta. No se puede proceder con la liquidación.');
-      }
-
-      // 2. Ejecutar el Stored Procedure de liquidación
       const result = await AppDataSource.query(
         `DECLARE @mensaje NVARCHAR(1000), @exito BIT;
          EXEC usp_LiquidarTodoTrader 
@@ -374,16 +334,9 @@ export class TradingService {
       );
 
       const { mensaje, exito } = result[0];
+      if (!exito) throw new Error(mensaje);
 
-      if (!exito) {
-        throw new Error(mensaje);
-      }
-
-      return {
-        exito: true,
-        mensaje
-      };
-
+      return { exito: true, mensaje };
     } catch (error: any) {
       console.error('Error en liquidación total:', error);
       throw new Error(error.message || 'Error al liquidar el portafolio');
