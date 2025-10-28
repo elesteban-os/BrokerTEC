@@ -41,13 +41,15 @@ export function CompanyDialog({ open, onClose, company, markets, onResult }: Com
   useEffect(() => {
     if (company) {
       setName(company.name)
-      setMarketId(company.marketId)
+      // force string to avoid type mismatch with Select values
+      setMarketId(String(company.marketId))
       setCurrentPrice(company.currentPrice.toString())
       setTotalShares(company.totalShares.toString())
       setEnabled(company.enabled) // Initialize enabled state
     } else {
       setName("")
-      setMarketId(markets[0]?.id || "")
+      // ensure default market id is a string
+      setMarketId(String(markets[0]?.id ?? ""))
       setCurrentPrice("")
       setTotalShares("")
       setEnabled(true) // Reset enabled state
@@ -142,7 +144,7 @@ export function CompanyDialog({ open, onClose, company, markets, onResult }: Com
                 </SelectTrigger>
                 <SelectContent>
                   {markets.map((market) => (
-                    <SelectItem key={market.id} value={market.id}>
+                    <SelectItem key={market.id} value={String(market.id)}>
                       {market.name}
                     </SelectItem>
                   ))}
