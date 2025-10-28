@@ -10,7 +10,6 @@ export interface FilterTransaccionesDTO {
   fecha_inicio?: string;  // Formato: 'YYYY-MM-DD'
   fecha_fin?: string;     // Formato: 'YYYY-MM-DD'
   tipo_accion?: 'COMPRA' | 'VENTA' | 'LIQUIDAR_TODO';  // Opcional: filtrar por tipo
-  id_mercado?: number;    // Opcional: filtrar por mercado
 }
 
 /**

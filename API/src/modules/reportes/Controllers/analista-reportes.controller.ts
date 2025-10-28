@@ -70,11 +70,6 @@ export class AnalistaReportesController {
      *           type: string
      *           enum: [COMPRA, VENTA, LIQUIDAR_TODO]
      *         description: Filtrar por tipo de operación
-     *       - in: query
-     *         name: id_mercado
-     *         schema:
-     *           type: integer
-     *         description: Filtrar por mercado específico
      *     responses:
      *       200:
      *         description: Historial obtenido exitosamente
@@ -156,12 +151,12 @@ export class AnalistaReportesController {
      * @swagger
      * /api/analista/reportes/tesoreria/inventario:
      *   get:
-     *     summary: Obtener inventario de Tesorería (acciones disponibles)
+     *     summary: Obtener inventario de Tesorería (acciones disponibles por empresa)
      *     description: |
      *       **Solo analistas**
      *       
      *       Retorna todas las empresas con sus acciones disponibles (no vendidas).
-     *       Muestra el valor total del inventario de Tesorería.
+     *       Muestra el valor total del inventario de Tesorería por empresa.
      *     tags:
      *       - Reportes Analista
      *     security:
@@ -171,7 +166,7 @@ export class AnalistaReportesController {
      *         name: id_mercado
      *         schema:
      *           type: integer
-     *         description: Filtrar por mercado específico
+     *         description: Filtrar por mercado específico (opcional)
      *     responses:
      *       200:
      *         description: Inventario obtenido exitosamente
@@ -279,8 +274,7 @@ export class AnalistaReportesController {
       const filtros: FilterTransaccionesDTO = {
         fecha_inicio: req.query.fecha_inicio as string,
         fecha_fin: req.query.fecha_fin as string,
-        tipo_accion: req.query.tipo_accion as any,
-        id_mercado: req.query.id_mercado ? parseInt(req.query.id_mercado as string) : undefined
+        tipo_accion: req.query.tipo_accion as any
       };
 
       // Validar fechas si se proporcionan

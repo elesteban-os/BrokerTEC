@@ -228,7 +228,7 @@ export class AnalistaReportesService {
         .where('empresa.habilitado = :habilitado', { habilitado: true })
         .andWhere('empresa.cantidad_acciones > 0')
         .orderBy('mercado.nombre', 'ASC')
-        .addOrderBy('empresa.ticker', 'ASC');
+        .addOrderBy('empresa.nombre', 'ASC');  // Ordenar por nombre en lugar de ticker
 
       if (id_mercado) {
         queryBuilder.andWhere('empresa.id_mercado = :id_mercado', { id_mercado });
@@ -289,22 +289,62 @@ export class AnalistaReportesService {
    */
   async getMayorTenedorPorEmpresa(nombre_empresa: string) {
     try {
-      // Ejecutar SP
+      // Validar que la empresa existe primero
+      const empresa = await this.empresaRepository.findOne({
+        where: { nombre: nombre_empresa, habilitado: true }
+      });
+
+      if (!empresa) {
+        throw new Error(`Empresa "${nombre_empresa}" no encontrada o deshabilitada`);
+      }
+
+      // Ejecutar SP con raw query
       const result = await AppDataSource.query(
         'EXEC usp_GetMayorTenedorPorEmpresa @nombre_empresa = @0',
         [nombre_empresa]
       );
 
-      // El SP retorna 2 result sets:
-      // [0] = Ranking de tenedores
-      // [1] = Información de la empresa
+      console.log('Resultado del SP:', JSON.stringify(result, null, 2));
+      console.log('Tipo de result:', typeof result, 'Es array:', Array.isArray(result));
+      console.log('Longitud:', result?.length);
 
-      const tenedores = result[0];
-      const infoEmpresa = result[1][0];
+      if (!result || !Array.isArray(result) || result.length === 0) {
+        throw new Error('No se recibieron datos del stored procedure');
+      }
 
-      // Verificar si hubo error
-      if (infoEmpresa.status === 'ERROR') {
-        throw new Error(infoEmpresa.mensaje);
+      // CASO REAL: El SP solo retorna el primer SELECT (tenedores)
+      // El segundo SELECT no llega a TypeORM
+      // Solución: usar los datos de tenedores + calcular info desde la empresa
+      
+      let tenedores: any[] = [];
+      let infoEmpresa: any = null;
+
+      // Verificar si es un array simple de tenedores (lo que estamos recibiendo)
+      const primerElemento = result[0];
+      
+      if (primerElemento && primerElemento.alias && primerElemento.cantidad_acciones) {
+        // Es un array plano de tenedores
+        tenedores = result;
+        
+        // Calcular información de empresa manualmente
+        const accionesEnTenedores = tenedores.reduce((sum, t) => 
+          sum + (t.tipo_tenedor === 'TRADER' ? t.cantidad_acciones : 0), 0
+        );
+        
+        const accionesEnTesoreria = tenedores.find(t => t.tipo_tenedor === 'TESORERIA')?.cantidad_acciones || 0;
+        
+        infoEmpresa = {
+          nombre_empresa: empresa.nombre,
+          total_acciones_empresa: empresa.cantidad_acciones,
+          acciones_en_circulacion: accionesEnTenedores,
+          acciones_disponibles_tesoreria: accionesEnTesoreria,
+          status: 'SUCCESS'
+        };
+      } else if (primerElemento && primerElemento.status === 'ERROR') {
+        // El SP retornó un error
+        throw new Error(primerElemento.mensaje);
+      } else {
+        throw new Error('Estructura de resultado del SP no reconocida');
       }
 
       return {
@@ -320,7 +360,7 @@ export class AnalistaReportesService {
           porcentaje_total: t.porcentaje_total,
           tipo: t.tipo_tenedor
         })),
-        mayor_tenedor: tenedores[0] ? {
+        mayor_tenedor: tenedores && tenedores.length > 0 ? {
           alias: tenedores[0].alias,
           cantidad: tenedores[0].cantidad_acciones,
           porcentaje: tenedores[0].porcentaje_total

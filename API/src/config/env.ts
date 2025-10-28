@@ -21,6 +21,6 @@ export const ENV = {
 
   // JWT Configuration
   JWT_SECRET: required('JWT_SECRET'),
-  JWT_ACCESS_EXPIRATION: process.env.JWT_ACCESS_EXPIRATION ?? '30m',
+  JWT_ACCESS_EXPIRATION: process.env.JWT_ACCESS_EXPIRATION ?? '60m',
   JWT_REFRESH_EXPIRATION: process.env.JWT_REFRESH_EXPIRATION ?? '7d',
 };
