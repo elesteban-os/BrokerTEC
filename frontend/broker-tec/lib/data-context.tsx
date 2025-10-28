@@ -695,10 +695,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     company: Partial<Company>,
   ): Promise<{ success: boolean; message: string }> => {
     try {
+      const idmercado = company.marketId ? parseInt(company.marketId) : undefined
       const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
       const bodyJSON = {
         "nombre": company.name,
-        "id_mercado": company.marketId,
+        "id_mercado": idmercado,
         "precio_actual": company.currentPrice,
         "cantidad_acciones": company.totalShares,
         "habilitado": company.enabled,
@@ -740,6 +741,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // const data = await response.json()
       // if (!data.success) return data
 
+      console.log("Delisting company with ID:", id, "Reason:", reason)
+      const bodyJSON = {
+        "justificacion": reason,
+      }
+
       const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
       const response = await fetch(`/api/admin/empresas/${id}`, {
         method: "DELETE",
@@ -747,7 +753,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ reason }),
+        body: JSON.stringify(bodyJSON),
       })
       const data = await response.json()
       if (!data.success) {
