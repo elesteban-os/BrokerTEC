@@ -6,12 +6,17 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import dynamic from "next/dynamic"
+
+// lazy import to avoid loading dialog unless needed
+const RegisterForm = dynamic(() => import("@/components/register-form"), { ssr: false }) as any
 
 export function LoginForm() {
   const [alias, setAlias] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showRegister, setShowRegister] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -102,7 +107,21 @@ export function LoginForm() {
         <Button type="submit" className="w-full h-11 text-base font-semibold" disabled={loading}>
           Iniciar sesión
         </Button>
+
+        <div className="flex items-center justify-center mt-2 ">
+          <Button variant="ghost" type="button" onClick={() => setShowRegister(true)}>
+            Registrarse
+          </Button>
+        </div>
       </form>
+      <RegisterForm open={showRegister} onClose={() => setShowRegister(false)} onResult={(r:any)=>{
+        if(r.success){
+          // optionally show a success message in the login form
+          setError(null)
+        } else {
+          setError(r.message)
+        }
+      }} />
     </div>
   )
 }

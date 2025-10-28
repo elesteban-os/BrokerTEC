@@ -123,6 +123,8 @@ interface DataContextType {
   updateUser: (id: string, user: Partial<User>) => void
   disableUser: (id: string, reason: string) => Promise<{ success: boolean; message: string }>
   addPriceHistory: (price: Omit<PriceHistory, "id">) => void
+  updatePriceManual: (companyId: string, price: number) => Promise<{ success: boolean; message: string }>
+  loadMultiplePrices: (prices: { companyId: string; price: number }[]) => Promise<{ success: boolean; message: string }>
   loadPricesFromAPI: (apiKey: string) => Promise<{ success: boolean; message: string }>
   getPriceHistory: (companyId: string) => PriceHistory[]
 }
@@ -933,6 +935,103 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const updatePriceManual = async (
+    companyId: string,
+    price: number,
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      if (price <= 0) {
+        return { success: false, message: "precio inválido" }
+      }
+
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+      const bodyJSON = {
+        "precio_actual": price,
+      }
+      const response = await fetch(`/api/admin/empresas/${companyId}/precio`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bodyJSON),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data?.message || "Fallo al actualizar precio")
+      }
+
+      // Add to price history
+      addPriceHistory({
+        companyId,
+        price,
+        timestamp: new Date(),
+      })
+
+      return { success: true, message: "Precio actualizado exitosamente" }
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : "Error al actualizar el precio"}
+    }
+  }
+
+  const loadMultiplePrices = async (
+    prices: { companyId: string; price: number }[],
+  ): Promise<{ success: boolean; message: string }> => {
+    try {
+      // TODO: Replace with actual API call
+      // const response = await fetch('/api/prices/bulk', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ prices })
+      // })
+      // const data = await response.json()
+      // if (!data.success) return data
+
+      // Validate all prices
+      for (const item of prices) {
+        if (item.price <= 0) {
+          return { success: false, message: `precio inválido para empresa ${item.companyId}` }
+        }
+      }
+
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+      const bodyJSON = {
+          "precios": prices.map((p) => ({
+            "id_empresa": p.companyId,
+            "precio_actual": p.price,
+          }))
+      }
+
+      console.log("Sending bulk price update with data:", JSON.stringify(bodyJSON))
+
+      const response = await fetch(`/api/admin/empresas/precios/bulk`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bodyJSON),
+      })
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data?.message || "Fallo al actualizar precios múltiples")
+      }
+      // Add all prices to history
+      prices.forEach((item) => {
+        addPriceHistory({
+          companyId: item.companyId,
+          price: item.price,
+          timestamp: new Date(),
+        })
+      })
+
+      return { success: true, message: `${prices.length} precios cargados exitosamente` }
+    } catch (error) {
+      return { success: false, message: error instanceof Error ? error.message : "Error al cargar precios múltiples"}
+    }
+  }
+
   const updateProfile = async (profile: Partial<UserProfile>): Promise<{ success: boolean; message: string }> => {
     // Validate email format
     if (profile.email) {
@@ -1004,6 +1103,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     
   }
+
+
 
   const changePassword = async (
     currentPassword: string,
@@ -1096,6 +1197,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addPriceHistory,
         loadPricesFromAPI,
         getPriceHistory,
+        updatePriceManual,
+        loadMultiplePrices,
       }}
     >
       {children}
