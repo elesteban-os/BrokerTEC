@@ -1,9 +1,9 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useData } from "@/lib/data-context"
+import { StatsCards } from "@/components/analista/stats-cards"
 
-export default function AnalistaDashboard() {
+export default function AnalistaDashboardPage() {
   const { companies, transactions, users } = useData()
 
   const totalCompanies = companies.filter((c) => c.isActive).length
@@ -17,34 +17,7 @@ export default function AnalistaDashboard() {
         <p className="text-muted-foreground">Resumen general del sistema</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Empresas Activas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-foreground">{totalCompanies}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Transacciones</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-foreground">{totalTransactions}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">Traders Activos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-foreground">{totalTraders}</p>
-          </CardContent>
-        </Card>
-      </div>
+      <StatsCards totalCompanies={totalCompanies} totalTransactions={totalTransactions} totalTraders={totalTraders} />
     </div>
   )
 }

@@ -4,10 +4,9 @@ import { useState, useMemo } from "react"
 import { useData } from "@/lib/data-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Progress } from "@/components/ui/progress"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { Building2, TrendingUp } from "lucide-react"
+import { DistributionChart } from "@/components/analista/distribution-chart"
+import { DistributionTable } from "@/components/analista/distribution-table"
 
 type ViewLevel = "market" | "company"
 
@@ -26,7 +25,6 @@ export default function EstadisticasPage() {
 
     const distribution = markets.map((market) => {
       const marketCompanies = companies.filter((c) => c.marketId === market.id)
-      const marketCompanyIds = marketCompanies.map((c) => c.id)
 
       let traderShares = 0
       let adminShares = 0
@@ -158,87 +156,8 @@ export default function EstadisticasPage() {
 
       {!error && currentData.length > 0 && (
         <>
-          {/* Chart */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Distribución de Tenencia (%)</CardTitle>
-              <CardDescription>
-                Porcentaje de acciones en traders vs. administración por{" "}
-                {viewLevel === "market" ? "mercado" : "empresa"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={chartData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" domain={[0, 100]} />
-                  <YAxis dataKey="name" type="category" width={100} />
-                  <Tooltip formatter={(value: number) => `${value.toFixed(2)}%`} />
-                  <Legend />
-                  <Bar dataKey="Traders" fill="rgba(1, 63, 96)" />
-                  <Bar dataKey="Administración" fill="black" />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Tabla de Distribución</CardTitle>
-              <CardDescription>
-                Detalles de tenencia por {viewLevel === "market" ? "mercado" : "empresa"}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{viewLevel === "market" ? "Mercado" : "Empresa"}</TableHead>
-                    <TableHead className="text-right">Total Acciones</TableHead>
-                    <TableHead className="text-right">Traders</TableHead>
-                    <TableHead className="text-right">Administración</TableHead>
-                    <TableHead>Distribución</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentData.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{item.name}</div>
-                          {viewLevel === "company" && "fullName" in item && (
-                            <div className="text-sm text-muted-foreground">{item.fullName}</div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-mono">{item.totalShares.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="font-mono">{item.traderShares.toLocaleString()}</div>
-                        <div className="text-sm text-muted-foreground">{item.traderPercent.toFixed(2)}%</div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="font-mono">{item.adminShares.toLocaleString()}</div>
-                        <div className="text-sm text-muted-foreground">{item.adminPercent.toFixed(2)}%</div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground w-20">Traders:</span>
-                            <Progress value={item.traderPercent} className="flex-1" />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground w-20">Admin:</span>
-                            <Progress value={item.adminPercent} className="flex-1 [&>div]:bg-muted-foreground" />
-                          </div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <DistributionChart data={chartData} viewLevel={viewLevel} />
+          <DistributionTable data={currentData} viewLevel={viewLevel} />
         </>
       )}
     </div>

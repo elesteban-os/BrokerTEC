@@ -1,16 +1,11 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { useData } from "@/lib/data-context"
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { Line, LineChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
-import { AlertCircle } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { EmpresaFilters } from "@/components/analista/empresa-filters"
+import { EmpresaMetrics } from "@/components/analista/empresa-metrics"
+import { EmpresaPriceChart } from "@/components/analista/empresa-price-chart"
+import { EmpresaTransactionsTable } from "@/components/analista/empresa-transactions-table"
 
 export default function EmpresaPage() {
   const { companies, transactions, users, positions, priceHistory, markets } = useData()
@@ -61,7 +56,7 @@ export default function EmpresaPage() {
 
   // Get major holder
   const majorHolder = useMemo(() => {
-    if (!selectedCompanyId) return null
+    if (!selectedCompanyId) return { alias: "administracion", shares: 0 }
 
     const companyPositions = positions.filter((p) => p.companyId === selectedCompanyId)
     if (companyPositions.length === 0) return { alias: "administracion", shares: 0 }
@@ -94,18 +89,6 @@ export default function EmpresaPage() {
       }))
   }, [priceHistory, selectedCompanyId])
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("es-ES", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-    }).format(value)
-  }
-
-  const formatNumber = (value: number) => {
-    return new Intl.NumberFormat("es-ES").format(value)
-  }
-
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -113,225 +96,35 @@ export default function EmpresaPage() {
         <p className="text-muted-foreground">Estudiar actividad y tenencia por empresa</p>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-2">
-              <Label>Mercado</Label>
-              <Select value={selectedMarketId} onValueChange={setSelectedMarketId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar mercado" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos los mercados</SelectItem>
-                  {markets.map((market) => (
-                    <SelectItem key={market.id} value={market.id}>
-                      {market.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Empresa</Label>
-              <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar empresa" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredCompanies.map((company) => (
-                    <SelectItem key={company.id} value={company.id}>
-                      {company.ticker} - {company.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Fecha Inicio</Label>
-              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Fecha Fin</Label>
-              <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-            </div>
-          </div>
-
-          {dateError && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{dateError}</AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+      <EmpresaFilters
+        markets={markets}
+        companies={filteredCompanies}
+        selectedMarketId={selectedMarketId}
+        selectedCompanyId={selectedCompanyId}
+        startDate={startDate}
+        endDate={endDate}
+        dateError={dateError}
+        onMarketChange={setSelectedMarketId}
+        onCompanyChange={setSelectedCompanyId}
+        onStartDateChange={setStartDate}
+        onEndDateChange={setEndDate}
+      />
 
       {selectedCompany && (
         <>
-          {/* Key Metrics */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-muted-foreground">Mayor Tenedor</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-foreground">{majorHolder?.alias}</p>
-                <p className="text-sm text-muted-foreground mt-1">{formatNumber(majorHolder?.shares || 0)} acciones</p>
-              </CardContent>
-            </Card>
+          <EmpresaMetrics
+            majorHolder={majorHolder}
+            treasuryInventory={treasuryInventory}
+            currentPrice={selectedCompany.currentPrice}
+          />
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-muted-foreground">Inventario de Tesorería</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-foreground">{formatNumber(treasuryInventory)}</p>
-                <p className="text-sm text-muted-foreground mt-1">acciones disponibles</p>
-              </CardContent>
-            </Card>
+          <EmpresaPriceChart data={chartData} />
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm font-medium text-muted-foreground">Precio Actual</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-foreground">{formatCurrency(selectedCompany.currentPrice)}</p>
-                <p className="text-sm text-muted-foreground mt-1">por acción</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Price Chart */}
-          {chartData.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Precio vs Tiempo</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer
-                  config={{
-                    price: {
-                      label: "Precio",
-                      color: "hsl(var(--primary))",
-                    },
-                  }}
-                  className="h-[300px]"
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                      <XAxis
-                        dataKey="date"
-                        tickFormatter={(value) => {
-                          const date = new Date(value)
-                          return `${date.getDate()}/${date.getMonth() + 1}`
-                        }}
-                        className="text-xs"
-                      />
-                      <YAxis
-                        domain={["dataMin - 5", "dataMax + 5"]}
-                        tickFormatter={(value) => `$${value}`}
-                        className="text-xs"
-                      />
-                      <ChartTooltip
-                        content={
-                          <ChartTooltipContent
-                            labelFormatter={(value) => {
-                              return new Date(value).toLocaleDateString("es-ES", {
-                                year: "numeric",
-                                month: "short",
-                                day: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })
-                            }}
-                            formatter={(value) => formatCurrency(Number(value))}
-                          />
-                        }
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="price"
-                        stroke="black"
-                        strokeWidth={3}
-                        dot={{ fill: "hsl(var(--primary))", r: 4 }}
-                        activeDot={{ r: 6 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Transaction History */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Historial de Transacciones</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {filteredTransactions.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Alias</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead className="text-right">Cantidad</TableHead>
-                      <TableHead className="text-right">Precio</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                      <TableHead>Fecha y Hora</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredTransactions.map((tx) => {
-                      const user = users.find((u) => u.id === tx.userId)
-                      return (
-                        <TableRow key={tx.id}>
-                          <TableCell className="font-medium">{user?.alias || "desconocido"}</TableCell>
-                          <TableCell>
-                            <span
-                              className={`px-2 py-1 rounded-md text-xs font-semibold ${
-                                tx.type === "buy"
-                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                  : tx.type === "sell"
-                                    ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                                    : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
-                              }`}
-                            >
-                              {tx.type === "buy" ? "Compra" : tx.type === "sell" ? "Venta" : "Liquidación"}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">{formatNumber(tx.shares)}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(tx.price)}</TableCell>
-                          <TableCell className="text-right font-semibold">{formatCurrency(tx.total)}</TableCell>
-                          <TableCell>
-                            {new Date(tx.createdAt).toLocaleDateString("es-ES", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-center text-muted-foreground py-8">
-                  {selectedCompanyId ? "No hay transacciones en el rango seleccionado" : "Selecciona una empresa"}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <EmpresaTransactionsTable
+            transactions={filteredTransactions}
+            users={users}
+            selectedCompanyId={selectedCompanyId}
+          />
         </>
       )}
     </div>
