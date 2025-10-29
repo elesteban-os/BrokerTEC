@@ -3,9 +3,12 @@
 import { useData } from "@/lib/data-context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Building2, TrendingUp, Users, DollarSign } from "lucide-react"
+import { useParams, useRouter } from "next/dist/client/components/navigation"
 
 export default function AdminDashboard() {
   const { markets, companies, positions } = useData()
+  const router = useRouter()
+  const params = useParams()
 
   const activeCompanies = companies.filter((c) => c.isActive).length
   const totalMarketCap = companies.filter((c) => c.isActive).reduce((sum, c) => sum + c.marketCap, 0)
