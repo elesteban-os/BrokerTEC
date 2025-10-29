@@ -4,6 +4,7 @@ import type React from "react"
 
 import { Building2, DollarSign, LayoutDashboard, LogOut, UserCircle, Users, Menu } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
@@ -13,6 +14,7 @@ import { DataProvider } from "@/lib/data-context"
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true)
+  const router = useRouter()
 
   const navItems = [
     {
@@ -58,12 +60,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             const Icon = item.icon
             const isActive = pathname === item.href
             return (
-              <Link key={item.href} href={item.href}>
-                <Button variant={isActive ? "default" : "ghost"} className="w-full justify-start gap-3">
+              <div key={item.href}>
+                <Button
+                  variant={isActive ? "default" : "ghost"}
+                  className="w-full justify-start gap-3"
+                  onClick={() => {
+                    // programmatic navigation to allow extra behavior (close sidebar)
+                    setIsSidebarOpen(false)
+                    router.push(item.href)
+                  }}
+                >
                   <Icon className="h-5 w-5" />
                   {isSidebarOpen && <span>{item.label}</span>}
                 </Button>
-              </Link>
+              </div>
             )
           })}
         </nav>

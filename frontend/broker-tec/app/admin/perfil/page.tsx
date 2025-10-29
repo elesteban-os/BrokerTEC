@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useData } from "@/lib/data-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,6 +40,8 @@ export default function PerfilPage() {
 
   const [profileMessage, setProfileMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const [passwordMessage, setPasswordMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+
+  const router = useRouter()
 
   const handleAddPhone = () => {
     if (newPhone.trim() === "") {
@@ -95,7 +98,7 @@ export default function PerfilPage() {
 
       // Back to login
       setTimeout(() => {
-        window.location.href = "/"
+        router.push("/")
       }, 1000)
 
     } else {

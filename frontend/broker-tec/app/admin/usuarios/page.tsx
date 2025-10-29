@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { get } from "http"
 
 export default function UsuariosPage() {
   const { users, markets, companies, positions, addUser, updateUser, disableUser, getUsers, getCompanies } = useData()
@@ -58,7 +59,7 @@ export default function UsuariosPage() {
     password: "",
     role: "analista" as "admin" | "trader" | "analista",
     wallet: "10000",
-    category: "basic" as "basic" | "intermediate" | "advanced",
+    category: "JUNIOR" as "JUNIOR" | "MID" | "SENIOR",
     operationLimit: "20000",
     enabledMarkets: [] as string[],
   })
@@ -130,7 +131,7 @@ export default function UsuariosPage() {
         password: "",
         role: "trader",
         wallet: "10000",
-        category: "basic",
+        category: "JUNIOR",
         operationLimit: "20000",
         enabledMarkets: [],
       })
@@ -139,15 +140,15 @@ export default function UsuariosPage() {
     }
   }
 
-  const handleEditUser = () => {
-    if (!formData.alias || !formData.email || !formData.nombre || !formData.apellido1) {
-      toast({
-        title: "Error",
-        description: "Completa todos los campos requeridos",
-        variant: "destructive",
-      })
-      return
-    }
+  const handleEditUser = async () => {
+    // if (!formData.alias || !formData.email || !formData.nombre || !formData.apellido1) {
+    //   toast({
+    //     title: "Error",
+    //     description: "Completa todos los campos requeridos",
+    //     variant: "destructive",
+    //   })
+    //   return
+    // }
 
     const validPhones = formData.phones.filter((p) => p.trim() !== "")
 
@@ -169,12 +170,14 @@ export default function UsuariosPage() {
       updatedUser.operationLimit = Number.parseFloat(formData.operationLimit)
     }
 
-    updateUser(selectedUser, updatedUser)
+    const result = await updateUser(selectedUser, updatedUser)
 
     toast({
-      title: "Éxito",
-      description: "Usuario actualizado exitosamente",
+      title: result.success ? "Éxito" : "Error",
+      description: result.message,
     })
+
+    getUsers().catch((e) => console.error("getUsers failed", e))
 
     setShowEditDialog(false)
     setSelectedUser("")
@@ -189,7 +192,7 @@ export default function UsuariosPage() {
       password: "",
       role: "trader",
       wallet: "10000",
-      category: "basic",
+      category: "JUNIOR",
       operationLimit: "20000",
       enabledMarkets: [],
     })
@@ -199,7 +202,7 @@ export default function UsuariosPage() {
     if (!disableReason.trim()) {
       toast({
         title: "Error",
-        description: "justificación requerida",
+        description: "Justificación requerida",
         variant: "destructive",
       })
       return
@@ -267,7 +270,7 @@ export default function UsuariosPage() {
         password: "",
         role: user.role,
         wallet: (user.wallet || 10000).toString(),
-        category: user.category || "basic",
+        category: user.category || "JUNIOR",
         operationLimit: (user.operationLimit || 20000).toString(),
         enabledMarkets: user.enabledMarkets || [],
       })
@@ -360,7 +363,7 @@ export default function UsuariosPage() {
                 <Label>Rol</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value: "admin" | "trader" | "analista") => setFormData({ ...formData, role: value })}
+                  onValueChange={(value: "admin" | "analista") => setFormData({ ...formData, role: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -395,7 +398,7 @@ export default function UsuariosPage() {
                 </div>
               </div>
 
-              {formData.role === "trader" && (
+              {/* {formData.role === "trader" && (
                 <>
                   <div className="col-span-2">
                     <hr className="my-2" />
@@ -405,7 +408,7 @@ export default function UsuariosPage() {
                     <Label>Categoría</Label>
                     <Select
                       value={formData.category}
-                      onValueChange={(value: "basic" | "intermediate" | "advanced") =>
+                      onValueChange={(value: "JUNIOR" | "MID" | "SENIOR") =>
                         setFormData({ ...formData, category: value })
                       }
                     >
@@ -459,7 +462,7 @@ export default function UsuariosPage() {
                     </div>
                   </div>
                 </>
-              )}
+              )} */}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowAddDialog(false)}>
@@ -485,7 +488,7 @@ export default function UsuariosPage() {
                     <Label>Categoría</Label>
                     <Select
                       value={formData.category}
-                      onValueChange={(value: "basic" | "intermediate" | "advanced") =>
+                      onValueChange={(value: "JUNIOR" | "MID" | "SENIOR") =>
                         setFormData({ ...formData, category: value })
                       }
                     >
@@ -493,13 +496,13 @@ export default function UsuariosPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="basic">Básico</SelectItem>
-                        <SelectItem value="intermediate">Intermedio</SelectItem>
-                        <SelectItem value="advanced">Avanzado</SelectItem>
+                        <SelectItem value="JUNIOR">Junior</SelectItem>
+                        <SelectItem value="MID">Mid</SelectItem>
+                        <SelectItem value="SENIOR">Senior</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="col-span-2">
+                  {/* <div className="col-span-2">
                     <Label>Mercados Habilitados</Label>
                     <div className="flex gap-2 mt-2">
                       {markets.map((market) => (
@@ -521,7 +524,7 @@ export default function UsuariosPage() {
                         </Button>
                       ))}
                     </div>
-                  </div>
+                  </div> */}
                 </>
               )}
             </div>
