@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useData } from "@/lib/data-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -24,19 +24,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
 export default function UsuariosPage() {
-  const { users, markets, companies, positions, addUser, updateUser, disableUser } = useData()
+  const { users, markets, companies, positions, addUser, updateUser, disableUser, getUsers, getCompanies } = useData()
   const { toast } = useToast()
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [showDisableDialog, setShowDisableDialog] = useState(false)
   const [selectedUser, setSelectedUser] = useState<string>("")
   const [disableReason, setDisableReason] = useState("")
-  const [roleFilter, setRoleFilter] = useState<"all" | "trader" | "admin" | "analista">("all")
+  const [roleFilter, setRoleFilter] = useState<"all" | "trader" | "admin" | "analista">("trader")
 
   // Resultado de la operación (modal)
   const [resultDialogOpen, setResultDialogOpen] = useState(false)
   const [resultSuccess, setResultSuccess] = useState<boolean | null>(null)
   const [resultMessage, setResultMessage] = useState("")
+
+  const calledRef = useRef(false)
+
+  useEffect(() => {
+        if (calledRef.current) return
+        calledRef.current = true
+        getUsers().catch((e) => console.error("getUsers failed", e))
+        getCompanies().catch((e) => console.error("getCompanies failed", e))
+  }, [getUsers])
 
   const [formData, setFormData] = useState({
     alias: "",
@@ -47,7 +56,7 @@ export default function UsuariosPage() {
     countryOrigin: "",
     phones: [""],
     password: "",
-    role: "trader" as "admin" | "trader" | "analista",
+    role: "analista" as "admin" | "trader" | "analista",
     wallet: "10000",
     category: "basic" as "basic" | "intermediate" | "advanced",
     operationLimit: "20000",
@@ -218,8 +227,7 @@ export default function UsuariosPage() {
   const getUserStockValue = (userId: string) => {
     const userPositions = positions.filter((p) => p.userId === userId)
     return userPositions.reduce((total, position) => {
-      const company = companies.find((c) => c.id === position.companyId)
-      return total + (company?.currentPrice || 0) * position.shares
+      return total + position.averagePrice * position.shares
     }, 0)
   }
 
@@ -358,7 +366,6 @@ export default function UsuariosPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="trader">Trader</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="analista">Analista</SelectItem>
                   </SelectContent>
@@ -467,102 +474,11 @@ export default function UsuariosPage() {
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Editar Usuario</DialogTitle>
-              <DialogDescription>Actualiza los datos del usuario</DialogDescription>
             </DialogHeader>
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Alias *</Label>
-                <Input
-                  value={formData.alias}
-                  onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
-                  placeholder="TradeMaster"
-                />
-              </div>
-              <div>
-                <Label>Email *</Label>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="usuario@example.com"
-                />
-              </div>
-              <div>
-                <Label>Nombre *</Label>
-                <Input
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  placeholder="Juan"
-                />
-              </div>
-              <div>
-                <Label>Apellido Paterno *</Label>
-                <Input
-                  value={formData.apellido1}
-                  onChange={(e) => setFormData({ ...formData, apellido1: e.target.value })}
-                  placeholder="García"
-                />
-              </div>
-              <div>
-                <Label>Apellido Materno</Label>
-                <Input
-                  value={formData.apellido2}
-                  onChange={(e) => setFormData({ ...formData, apellido2: e.target.value })}
-                  placeholder="López"
-                />
-              </div>
-              <div>
-                <Label>País de Origen</Label>
-                <Input
-                  value={formData.countryOrigin}
-                  onChange={(e) => setFormData({ ...formData, countryOrigin: e.target.value })}
-                  placeholder="México"
-                />
-              </div>
-              <div>
-                <Label>Rol *</Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(value: "admin" | "trader" | "analista") => setFormData({ ...formData, role: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="trader">Trader</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="analista">Analista</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="col-span-2">
-                <Label>Números de Teléfono</Label>
-                <div className="space-y-2 mt-2">
-                  {formData.phones.map((phone, index) => (
-                    <div key={index} className="flex gap-2">
-                      <Input
-                        value={phone}
-                        onChange={(e) => updatePhone(index, e.target.value)}
-                        placeholder="+52 555 123 4567"
-                      />
-                      {formData.phones.length > 1 && (
-                        <Button variant="ghost" size="icon" onClick={() => removePhone(index)}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                  <Button variant="outline" size="sm" onClick={addPhone}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Agregar Teléfono
-                  </Button>
-                </div>
-              </div>
-
               {formData.role === "trader" && (
                 <>
                   <div className="col-span-2">
-                    <hr className="my-2" />
                     <h3 className="text-sm font-semibold text-muted-foreground">Configuración de Trader</h3>
                   </div>
                   <div>
@@ -582,22 +498,6 @@ export default function UsuariosPage() {
                         <SelectItem value="advanced">Avanzado</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div>
-                    <Label>Wallet (USD)</Label>
-                    <Input
-                      type="number"
-                      value={formData.wallet}
-                      onChange={(e) => setFormData({ ...formData, wallet: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <Label>Límite de Operación (USD)</Label>
-                    <Input
-                      type="number"
-                      value={formData.operationLimit}
-                      onChange={(e) => setFormData({ ...formData, operationLimit: e.target.value })}
-                    />
                   </div>
                   <div className="col-span-2">
                     <Label>Mercados Habilitados</Label>
@@ -697,20 +597,6 @@ export default function UsuariosPage() {
               <CardTitle>Listado de Usuarios</CardTitle>
               <CardDescription>Gestiona usuarios y sus cuentas</CardDescription>
             </div>
-            <div className="flex items-center gap-2">
-              <Label>Filtrar por rol:</Label>
-              <Select value={roleFilter} onValueChange={(value: any) => setRoleFilter(value)}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="trader">Traders</SelectItem>
-                  <SelectItem value="admin">Admins</SelectItem>
-                  <SelectItem value="analista">Analistas</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -718,8 +604,6 @@ export default function UsuariosPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Alias</TableHead>
-                <TableHead>Nombre Completo</TableHead>
-                <TableHead>Email</TableHead>
                 <TableHead>Rol</TableHead>
                 <TableHead>Estado</TableHead>
                 {(roleFilter === "all" || roleFilter === "trader") && (
@@ -738,10 +622,6 @@ export default function UsuariosPage() {
               {filteredUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.alias}</TableCell>
-                  <TableCell>
-                    {user.nombre} {user.apellido1} {user.apellido2}
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
                   <TableCell>
                     <Badge
                       variant={user.role === "admin" ? "default" : user.role === "analista" ? "outline" : "secondary"}

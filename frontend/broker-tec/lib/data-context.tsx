@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
-import { get } from "react-hook-form"
+import { get, set } from "react-hook-form"
 
 export interface Market {
   id: string
@@ -119,6 +119,7 @@ interface DataContextType {
   deleteCompany: (id: string) => void
   delistCompany: (id: string, reason: string) => Promise<{ success: boolean; message: string }>
   getCompanies: () => Promise<{ success: boolean; message: string }>
+  getUsers: () => Promise<{ success: boolean; message: string }>
   addUser: (user: Omit<UserCreation, "id" | "createdAt">) => Promise<{ success: boolean; message: string }>
   updateUser: (id: string, user: Partial<User>) => void
   disableUser: (id: string, reason: string) => Promise<{ success: boolean; message: string }>
@@ -351,7 +352,74 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const [transactions, setTransactions] = useState<Transaction[]>([])
 
-  
+  const getUsers = async (): Promise<{ success: boolean; message: string }> => {
+    // Obtener traders desde la API
+    console.log("Fetching traders from API...")
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+      const res = await fetch("/api/admin/traders", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+      })
+
+      const payload = await res.json().catch(() => ({}))
+      const payload2 = payload.data || payload || []
+
+      if (!res.ok) {
+        console.error("Failed to fetch users:", payload)
+        throw new Error(payload?.message || "Fallo al obtener usuarios")
+      }
+
+      console.log("Raw users payload:", payload)
+
+      const list = (payload.data || payload || []).map((u: any) => ({
+        id: String(u.id_user) ?? (u.id ? String(u.id) : String(Date.now())),
+        alias: u.alias ?? "",
+        email: u.email ?? "",
+        nombre: u.nombre_completo ?? "",
+        apellido1: "",
+        apellido2: "",
+        countryOrigin: u.pais_origen ?? "",
+        phones: u.telefonos ?? [],
+        role: "trader",
+        status:
+          typeof u.habilitado !== "undefined"
+            ? (Boolean(u.habilitado) ? "active" : "disabled")
+            : typeof u.status !== "undefined"
+            ? (u.status === "active" || u.status === true ? "active" : "disabled")
+            : "active",
+        wallet: u.wallet.saldo ?? 0,
+        enabledMarkets: u.mercados_habilitados ?? [],
+        category: u.wallet.categoria ?? "basic",
+        operationLimit: u.wallet.limite_diario ?? 0,
+        createdAt: u.fecha_creacion ? new Date(u.fecha_creacion) : new Date(),
+      })) as User[]
+      console.log("Fetched users:", list)
+
+      const listHistory = (payload2.data || payload2 || []).map((u: any) => ({
+        id: u.id ? String(Date.now()) : String(Date.now()),
+        userId: String(u.id_user) ?? (u.id ? String(u.id) : String(Date.now())),
+        companyId: String(u.id_empresa) ?? (u.id ? String(u.id) : String(Date.now())),
+        shares: 1,
+        averagePrice: u.valor_actual_portafolio ?? 0,
+      })) as Position[]
+
+      console.log("Fetched price histories:", listHistory)
+
+      setPositions(listHistory)
+      setUsers(list)
+      return { success: true, message: "Usuarios cargados" }
+    } catch (err) {
+      console.error("Error fetching users:", err)
+      const e = err as Error
+      return { success: false, message: e.message || "Error al cargar usuarios" }
+    }
+  }
+
   const [users, setUsers] = useState<User[]>([
     {
       id: "user1",
@@ -1191,6 +1259,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         deleteCompany,
         delistCompany,
         getCompanies,
+        getUsers,
         addUser,
         updateUser,
         disableUser,
