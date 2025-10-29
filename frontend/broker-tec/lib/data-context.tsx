@@ -14,6 +14,7 @@ export interface Market {
 export interface Company {
   id: string
   name: string
+  ticker: string
   marketId: string
   currentPrice: number
   totalShares: number
@@ -181,6 +182,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     {
       id: "1",
       name: "Apple Inc.",
+      ticker: "AAPL",
       marketId: "1",
       currentPrice: 178.5,
       totalShares: 15000000000,
@@ -192,6 +194,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     {
       id: "2",
       name: "Microsoft Corporation",
+      ticker: "MSFT",
       marketId: "1",
       currentPrice: 420.3,
       totalShares: 7430000000,
@@ -203,6 +206,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     {
       id: "3",
       name: "Tesla Inc.",
+      ticker: "TSLA",
       marketId: "1",
       currentPrice: 245.6,
       totalShares: 3180000000,
