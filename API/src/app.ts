@@ -17,10 +17,12 @@ import empresasController from './modules/gestion_empresas/Controllers/empresas.
 import preciosController from './modules/gestion_empresas/Controllers/precios.controller';
 import traderManagementController from './modules/gestion_usuarios/Controllers/trader-management.controller';
 import { ReportesController } from './modules/reportes/Controllers/reportes.controller';
+import { AnalistaReportesController } from './modules/reportes/Controllers/analista-reportes.controller';
 import { WalletController } from './modules/wallet/Controllers/wallet.controller';
 import { TradingController } from './modules/trading/Controllers/trading.controller';
 
 const reportesController = new ReportesController();
+const analistaReportesController = new AnalistaReportesController();
 const walletController = new WalletController();
 const tradingController = new TradingController();
 
@@ -93,6 +95,9 @@ async function bootstrap() {
 
   // rutas del módulo de reportes (Admin)
   app.use('/api/admin/reportes', reportesController.router);
+
+  // rutas del módulo de reportes (Analista)
+  app.use('/api/analista/reportes', analistaReportesController.router);
 
   // rutas del módulo de wallet (Trader)
   app.use('/api/trader/wallet', walletController.router);
