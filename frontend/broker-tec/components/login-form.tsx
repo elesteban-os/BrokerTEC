@@ -66,8 +66,8 @@ export function LoginForm() {
 
       if (roleName === "ADMINISTRADOR") {
         router.push("/admin")
-      } else if (roleName === "ANALYST") {
-        router.push("/analyst")
+      } else if (roleName === "ANALISTA") {
+        router.push("/analista")
       } else if (roleName === "TRADER") {
         router.push("/trader")
       } else {
