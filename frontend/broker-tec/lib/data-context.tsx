@@ -114,6 +114,7 @@ interface DataContextType {
   updateMarket: (id: string, name: string, market: Partial<Market>) => Promise<{ success: boolean; message: string }>
   getMarkets: () => Promise<{ success: boolean; message: string }>
   deleteMarket: (id: string) => Promise<void>
+  disableMarket: (id: string, reason: string) => Promise<{ success: boolean; message: string }>
   addCompany: (company: Omit<Company, "id" | "createdAt" | "enabled">) => Promise<{ success: boolean; message: string }>
   updateCompany: (id: string, company: Partial<Company>) => Promise<{ success: boolean; message: string }>
   deleteCompany: (id: string) => void
@@ -717,6 +718,47 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const disableMarket = async (id: string, reason: string): Promise<{ success: boolean; message: string }> => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+
+    const bodyJSON = {
+      "justificacion": reason,
+    }
+
+    try {
+      const response = await fetch(`/api/admin/mercados/${id}/disable`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bodyJSON),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Fallo al deshabilitar mercado")
+      }
+
+      // Refresh list to mirror server state
+      try {
+        await getMarkets()
+      } catch {
+        /* ignore refresh errors */
+      }
+
+      return { 
+        success: true, 
+        message: data?.message || `Mercado deshabilitado correctamente. ${data?.empresas_delistadas || 0} empresas delistadas.` 
+      }
+    } catch (error) {
+      console.error("Error disabling market:", error)
+      const err = error as Error
+      return { success: false, message: err?.message || "Fallo al deshabilitar mercado" }
+    }
+  }
+
     const addCompany = async (
     company: Omit<Company, "id" | "createdAt" | "enabled">,
   ): Promise<{ success: boolean; message: string }> => {
@@ -1265,6 +1307,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addMarket,
         updateMarket,
         deleteMarket,
+        disableMarket,
         addCompany,
         updateCompany,
         deleteCompany,

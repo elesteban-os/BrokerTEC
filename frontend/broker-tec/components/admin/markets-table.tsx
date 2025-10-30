@@ -4,27 +4,21 @@ import { useState, useEffect, useRef } from "react"
 import { useData, type Market } from "@/lib/data-context"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Edit, Trash2 } from "lucide-react"
-import { Badge } from "@/components/ui/badge" // added Badge import for enabled status
+import { Badge } from "@/components/ui/badge"
+import { DisableMarketDialog } from "./disable-market-dialog"
+import { useToast } from "@/hooks/use-toast"
 
 interface MarketsTableProps {
   onEdit: (market: Market) => void
 }
 
 export function MarketsTable({ onEdit }: MarketsTableProps) {
-  const { deleteMarket, getMarkets, markets } = useData()
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [marketToDelete, setMarketToDelete] = useState<Market | null>(null)
+  const { disableMarket, getMarkets, markets } = useData()
+  const [disableDialogOpen, setDisableDialogOpen] = useState(false)
+  const [marketToDisable, setMarketToDisable] = useState<Market | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const { toast } = useToast()
   const calledRef = useRef(false)
 
   useEffect(() => {
@@ -33,16 +27,41 @@ export function MarketsTable({ onEdit }: MarketsTableProps) {
     getMarkets().catch((e) => console.error("getMarkets failed", e))
   }, [getMarkets])
 
-  const handleDeleteClick = (market: Market) => {
-    setMarketToDelete(market)
-    setDeleteDialogOpen(true)
+  const handleDisableClick = (market: Market) => {
+    setMarketToDisable(market)
+    setDisableDialogOpen(true)
   }
 
-  const handleConfirmDelete = () => {
-    if (marketToDelete) {
-      deleteMarket(marketToDelete.id)
-      setDeleteDialogOpen(false)
-      setMarketToDelete(null)
+  const handleConfirmDisable = async (reason: string) => {
+    if (!marketToDisable) return
+
+    setIsLoading(true)
+    try {
+      const result = await disableMarket(marketToDisable.id, reason)
+      
+      if (result.success) {
+        toast({
+          title: "✅ Mercado deshabilitado",
+          description: result.message,
+          variant: "default",
+        })
+        setDisableDialogOpen(false)
+        setMarketToDisable(null)
+      } else {
+        toast({
+          title: "❌ Error",
+          description: result.message,
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "❌ Error",
+        description: "Ocurrió un error al deshabilitar el mercado",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -72,7 +91,13 @@ export function MarketsTable({ onEdit }: MarketsTableProps) {
                   <Button variant="ghost" size="icon" onClick={() => onEdit(market)}>
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={() => handleDeleteClick(market)}>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleDisableClick(market)}
+                    disabled={!market.enabled}
+                    title={market.enabled ? "Deshabilitar mercado" : "Mercado ya deshabilitado"}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -82,20 +107,13 @@ export function MarketsTable({ onEdit }: MarketsTableProps) {
         </TableBody>
       </Table>
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción eliminará el mercado "{marketToDelete?.name}". Esta acción no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete}>Eliminar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DisableMarketDialog
+        open={disableDialogOpen}
+        onOpenChange={setDisableDialogOpen}
+        marketName={marketToDisable?.name || ""}
+        onConfirm={handleConfirmDisable}
+        isLoading={isLoading}
+      />
     </>
   )
 }
