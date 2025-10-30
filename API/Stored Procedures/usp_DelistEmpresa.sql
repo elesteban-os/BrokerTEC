@@ -58,29 +58,39 @@ BEGIN
         DECLARE @id_posicion INT;
         DECLARE @id_user INT;
         DECLARE @cantidad INT;
+        DECLARE @costo_promedio DECIMAL(15, 2);
         DECLARE @monto_liquidacion DECIMAL(15, 2);
+        DECLARE @ganancia_perdida DECIMAL(15, 2);
         DECLARE @user_alias VARCHAR(50);
         
         DECLARE posiciones_cursor CURSOR FOR
-        SELECT p.id_posicion, p.id_user, p.cantidad, u.alias
+        SELECT p.id_posicion, p.id_user, p.cantidad, p.costo_promedio, u.alias
         FROM posiciones p
         INNER JOIN usuarios u ON p.id_user = u.id_user
         WHERE p.id_empresa = @id_empresa;
         
         OPEN posiciones_cursor;
-        FETCH NEXT FROM posiciones_cursor INTO @id_posicion, @id_user, @cantidad, @user_alias;
+        FETCH NEXT FROM posiciones_cursor INTO @id_posicion, @id_user, @cantidad, @costo_promedio, @user_alias;
         
         WHILE @@FETCH_STATUS = 0
         BEGIN
             -- Calcular monto de liquidación
             SET @monto_liquidacion = @cantidad * @precio_actual;
             
+            -- Calcular ganancia o pérdida: (precio_actual - costo_promedio) × cantidad
+            SET @ganancia_perdida = (@precio_actual - @costo_promedio) * @cantidad;
+            
             -- Abonar al wallet del trader
             UPDATE wallets
             SET saldo = saldo + @monto_liquidacion
             WHERE id_user = @id_user;
             
-            -- Registrar auditoría de la liquidación
+            -- DEVOLVER ACCIONES AL INVENTARIO DE LA EMPRESA
+            UPDATE empresas
+            SET cantidad_acciones = cantidad_acciones + @cantidad
+            WHERE id_empresa = @id_empresa;
+            
+            -- Registrar auditoría de la liquidación como VENTA
             INSERT INTO auditoria (
                 id_user,
                 user_alias,
@@ -94,6 +104,7 @@ BEGIN
                 monto_operacion,
                 saldo_anterior,
                 saldo_nuevo,
+                ganancia_perdida,
                 justificacion,
                 descripcion,
                 fecha_hora,
@@ -103,18 +114,19 @@ BEGIN
                 @id_user,
                 @user_alias,
                 r.role_name,
-                'LIQUIDACION_DELISTING',
+                'VENTA',
                 'posiciones',
                 @id_posicion,
-                @nombre_empresa,  -- Guardamos el nombre de la empresa
+                @nombre_empresa,
                 @cantidad,
                 @precio_actual,
                 @monto_liquidacion,
                 w.saldo - @monto_liquidacion,
                 w.saldo,
+                @ganancia_perdida,
                 @justificacion,
-                'Liquidación automática por delisting de ' + @nombre_empresa,
-                GETDATE(),  --  NECESARIO en SP
+                'Venta forzada por delisting de ' + @nombre_empresa,
+                GETDATE(),
                 1
             FROM usuarios u
             INNER JOIN roles r ON u.id_role = r.id_role
@@ -128,7 +140,7 @@ BEGIN
             SET @posiciones_liquidadas = @posiciones_liquidadas + 1;
             SET @monto_total_liquidado = @monto_total_liquidado + @monto_liquidacion;
             
-            FETCH NEXT FROM posiciones_cursor INTO @id_posicion, @id_user, @cantidad, @user_alias;
+            FETCH NEXT FROM posiciones_cursor INTO @id_posicion, @id_user, @cantidad, @costo_promedio, @user_alias;
         END
         
         CLOSE posiciones_cursor;
@@ -167,7 +179,7 @@ BEGIN
             'Delisting de ' + @nombre_empresa + '. ' + 
             CAST(@posiciones_liquidadas AS VARCHAR) + ' posiciones liquidadas por $' + 
             CAST(@monto_total_liquidado AS VARCHAR),
-            GETDATE(),  -- ✅ NECESARIO en SP
+            GETDATE(),  --  NECESARIO en SP
             1
         );
 

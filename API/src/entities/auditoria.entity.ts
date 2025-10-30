@@ -1,4 +1,5 @@
 // Entity para tabla de auditoría - BrokerTEC
+// Registra todas las acciones importantes realizadas por los usuarios y se utiliza para reportes 
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
 import { User } from './user.entity';
 

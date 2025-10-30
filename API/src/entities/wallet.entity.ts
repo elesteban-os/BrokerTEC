@@ -3,9 +3,9 @@ import { User } from './user.entity';
 
 /**
  * Categorías de wallet según límite diario de recarga
- * JUNIOR: Límite bajo
- * MID: Límite medio
- * SENIOR: Límite alto
+ * JUNIOR: Límite bajo (5000 USD)
+ * MID: Límite medio (10000 USD)
+ * SENIOR: Límite alto (50000 USD)
  */
 export type WalletCategory = 'JUNIOR' | 'MID' | 'SENIOR';
 

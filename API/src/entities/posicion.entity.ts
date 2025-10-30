@@ -48,7 +48,7 @@ export class Posicion {
   @JoinColumn({ name: 'id_empresa' })
   empresa!: Empresa;
 
-  // ===== MÉTODO CALCULADO =====
+  // ===== Atributos derivados (calculados) =====
 
   /**
    * Calcula el valor actual de la posición

@@ -1,3 +1,9 @@
+/** 
+ * Configuración de la fuente de datos para TypeORM 
+ * Define la conexión a la base de datos y las rutas de las entidades y migraciones
+ */
+ 
+
 import 'reflect-metadata';
 import path from 'node:path';
 import { DataSource } from 'typeorm';
@@ -24,7 +30,7 @@ export const AppDataSource = new DataSource({
     encrypt: ENV.DB_ENCRYPT,
     trustServerCertificate: ENV.DB_TRUST_SERVER_CERT,
   },
-  synchronize: false,               // en prod: SIEMPRE false; usa migraciones
+  synchronize: false,               
   requestTimeout:300000,
   logging: false,
   entities: entityGlobs,

@@ -124,7 +124,7 @@ export class TradingService {
   }
 
   /**
-   * 🔹 NUEVO MÉTODO:
+   *  NUEVO MÉTODO:
    * Obtiene la posición actual del trader en una empresa
    * Si no tiene, devuelve null
    */
@@ -154,7 +154,7 @@ export class TradingService {
         }
       };
     } catch (error: any) {
-      console.error('❌ Error en TradingService.getPosicionTrader:', error);
+      console.error(' Error en TradingService.getPosicionTrader:', error);
       throw new Error('Error al obtener posición del trader: ' + error.message);
     }
   }

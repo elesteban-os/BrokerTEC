@@ -57,9 +57,9 @@ BEGIN
             ELSE 5000.00 -- Default: JUNIOR
         END;
         
-        -- =============================================
+     
         -- 4. CREAR EL WALLET CON VALORES INICIALES
-        -- =============================================
+       
         INSERT INTO wallets (
             id_user,
             saldo,

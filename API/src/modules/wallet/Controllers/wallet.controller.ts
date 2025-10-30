@@ -6,13 +6,161 @@ import { RecargarWalletDto } from '../DTOs/recargar-wallet.dto';
 import { validateDto } from '../../../common/validate-dto';
 
 /**
- * Controlador para gestión del wallet de traders
- * Solo accesible por usuarios con rol TRADER
- * 
- * Endpoints:
- * - GET /api/trader/wallet - Ver información del wallet
- * - POST /api/trader/wallet/recargar - Recargar saldo del wallet
- * - GET /api/trader/wallet/historial - Ver historial de recargas
+ * @swagger
+ * tags:
+ *   name: Wallet
+ *   description: Gestión del wallet de traders
+ */
+
+/**
+ * @swagger
+ * /api/trader/wallet:
+ *   get:
+ *     summary: Obtener información del wallet
+ *     description: Consulta el saldo disponible y detalles del wallet del trader autenticado
+ *     tags: [Wallet]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Información del wallet obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/WalletResponse'
+ *       401:
+ *         description: Token de autenticación inválido o faltante
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Token de autorización requerido"
+ *       403:
+ *         description: Usuario sin permisos de TRADER
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Acceso denegado: se requiere rol de TRADER"
+ *       404:
+ *         description: Wallet no encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Wallet no encontrado"
+ *       500:
+ *         description: Error interno del servidor
+ */
+
+/**
+ * @swagger
+ * /api/trader/wallet/recargar:
+ *   post:
+ *     summary: Recargar saldo del wallet
+ *     description: Añade fondos al wallet del trader. Límite diario de $1,000,000
+ *     tags: [Wallet]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RecargarWalletDto'
+ *     responses:
+ *       200:
+ *         description: Recarga exitosa
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Recarga exitosa de $1000.00"
+ *                 data:
+ *                   $ref: '#/components/schemas/WalletResponse'
+ *       400:
+ *         description: Datos inválidos o límite diario excedido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Se ha excedido el límite diario de recargas"
+ *       401:
+ *         description: Token de autenticación inválido o faltante
+ *       403:
+ *         description: Usuario sin permisos de TRADER
+ *       404:
+ *         description: Wallet no encontrado
+ *       500:
+ *         description: Error interno del servidor
+ */
+
+/**
+ * @swagger
+ * /api/trader/wallet/historial:
+ *   get:
+ *     summary: Obtener historial de recargas
+ *     description: Consulta todas las recargas realizadas por el trader autenticado
+ *     tags: [Wallet]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Historial obtenido exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/HistorialRecarga'
+ *       401:
+ *         description: Token de autenticación inválido o faltante
+ *       403:
+ *         description: Usuario sin permisos de TRADER
+ *       500:
+ *         description: Error interno del servidor
  */
 export class WalletController {
   public router: Router;
@@ -29,7 +177,7 @@ export class WalletController {
    * Todas las rutas requieren autenticación JWT y rol de TRADER
    */
   private initializeRoutes() {
-    // 🔹 Obtener información del wallet
+    //  Obtener información del wallet
     this.router.get(
       '/',
       JwtAuthGuard.middleware(),
@@ -37,7 +185,7 @@ export class WalletController {
       this.getWallet.bind(this)
     );
 
-    // 🔹 Recargar el wallet
+    //  Recargar el wallet
     this.router.post(
       '/recargar',
       JwtAuthGuard.middleware(),
@@ -46,7 +194,7 @@ export class WalletController {
       this.recargarWallet.bind(this)
     );
 
-    // 🔹 Obtener historial de recargas
+    //  Obtener historial de recargas
     this.router.get(
       '/historial',
       JwtAuthGuard.middleware(),

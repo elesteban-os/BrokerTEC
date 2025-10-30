@@ -1,10 +1,27 @@
 import { IsInt, IsPositive, Min } from 'class-validator';
 
 /**
- * DTO para comprar acciones
- * Validaciones:
- * - ID de empresa debe ser un número entero positivo
- * - Cantidad de acciones debe ser al menos 1
+ * @swagger
+ * components:
+ *   schemas:
+ *     ComprarAccionesDto:
+ *       type: object
+ *       properties:
+ *         id_empresa:
+ *           type: integer
+ *           format: int32
+ *           minimum: 1
+ *           example: 5
+ *           description: ID de la empresa de la cual comprar acciones
+ *         cantidad:
+ *           type: integer
+ *           format: int32
+ *           minimum: 1
+ *           example: 10
+ *           description: Cantidad de acciones a comprar
+ *       required:
+ *         - id_empresa
+ *         - cantidad
  */
 export class ComprarAccionesDto {
   @IsInt({ message: 'El ID de empresa debe ser un número entero' })

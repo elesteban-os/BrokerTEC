@@ -1,19 +1,62 @@
+/**
+ * Servicio de Auditoría
+ * --------------------
+ * Este archivo expone la clase `AuditoriaService` que encapsula la lógica
+ * para registrar y consultar eventos de auditoría en la base de datos usando
+ * TypeORM.
+ *
+ * Propósito:
+ * - Registrar acciones importantes (operaciones trading, administración, etc.)
+ *   en la tabla `auditoria` para trazabilidad.
+ * - Proveer métodos para consultar historial y estadísticas básicas.
+ *
+ * Uso (ejemplo mínimo):
+ * ```ts
+ * const svc = new AuditoriaService();
+ * await svc.registrar({
+ *   id_user: 123,
+ *   user_alias: 'juan',
+ *   accion: 'COMPRA',
+ *   entidad_afectada: 'WALLET',
+ *   ticker_empresa: 'ACME',
+ *   cantidad_acciones: 10,
+ *   precio_operacion: 50,
+ *   monto_operacion: 500
+ * });
+ * const historial = await svc.obtenerHistorial({ limit: 50 });
+ * const stats = await svc.obtenerEstadisticas(7);
+ * ```
+ *
+ * Notas importantes:
+ * - Este servicio obtiene el repositorio desde `AppDataSource`:
+ *   `AppDataSource.getRepository(Auditoria)`. Asegúrate de inicializar
+ *   `AppDataSource` (llamando `AppDataSource.initialize()`) al arrancar la app
+ *   antes de usar este servicio.
+ * - El método `registrar` atrapa y registra errores localmente (no lanza)
+ *   porque la auditoría no debe bloquear la operación principal si falla.
+ */
+
 import { AppDataSource } from '../../../config/data-source';
 import { Auditoria } from '../../../entities/auditoria.entity';
 import { Repository } from 'typeorm';
 import { TipoAccionAuditoria, EntidadAfectada } from '../../../common/audit.types';
 
+/**
+ * Estructura usada para crear un registro de auditoría.
+ *
+ * Se usa para instanciar nuevos registros en la tabla de auditoría.
+ */
 export interface RegistroAuditoria {
   // Usuario que realiza la acción
   id_user?: number | null; // antes: string (uuid)
   user_alias?: string | null;
   user_role?: string | null;
-  
+
   // Qué se hizo
   accion: TipoAccionAuditoria;
   entidad_afectada: EntidadAfectada;
   id_registro_afectado?: number | null; // antes: string (uuid)
-  
+
   // Específico para trading
   ticker_empresa?: string | null;
   cantidad_acciones?: number | null;
@@ -21,7 +64,7 @@ export interface RegistroAuditoria {
   monto_operacion?: number | null;
   saldo_anterior?: number | null;
   saldo_nuevo?: number | null;
-  
+
   // Información adicional
   justificacion?: string | null;
   requiere_confirmacion?: boolean;
@@ -38,7 +81,8 @@ export class AuditoriaService {
   }
 
   /**
-   * Registrar una acción en la auditoría
+   * Registrar una acción en la auditoría.
+   * Utilza la informacion instanciada de la interfaz RegistroAuditoria.
    */
   async registrar(data: RegistroAuditoria): Promise<void> {
     try {
@@ -64,7 +108,9 @@ export class AuditoriaService {
 
       await this.repo.save(auditoria);
     } catch (error) {
-      // En caso de error, no queremos que falle la operación principal
+      // En caso de error, no queremos que falle la operación principal.
+      // Aquí simplemente logueamos el error. Si más adelante se desea,
+      // se puede enviar este fallo a un sistema de logging/monitoring.
       console.error('Error al registrar auditoría:', error);
     }
   }
@@ -81,6 +127,8 @@ export class AuditoriaService {
     fecha_hasta?: Date;
     limit?: number;
   }) {
+    // Construye una consulta con filtros opcionales. Se hace leftJoin a la entidad
+    // `user` en caso de querer información adicional del usuario relacionado.
     const query = this.repo.createQueryBuilder('auditoria')
       .leftJoinAndSelect('auditoria.user', 'user')
       .orderBy('auditoria.fecha_hora', 'DESC');

@@ -8,8 +8,279 @@ import { VenderAccionesDto } from '../DTOs/vender-acciones.dto'
 import { LiquidarTodoDto } from '../DTOs/liquidar-todo.dto'
 
 /**
- * Controlador para trading de traders
- * Solo accesible por usuarios con rol TRADER
+ * @swagger
+ * tags:
+ *   name: Trading
+ *   description: Operaciones de compra/venta de acciones para traders
+ */
+
+/**
+ * @swagger
+ * /api/trader/portada:
+ *   get:
+ *     summary: Obtener portada del mercado
+ *     description: Consulta información general de todas las empresas disponibles para trading
+ *     tags: [Trading]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Portada obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/EmpresaPortada'
+ *       401:
+ *         description: Token de autenticación inválido o faltante
+ *       403:
+ *         description: Usuario sin permisos de TRADER
+ *       500:
+ *         description: Error interno del servidor
+ */
+
+/**
+ * @swagger
+ * /api/trader/empresas/{id}:
+ *   get:
+ *     summary: Obtener detalle de una empresa
+ *     description: Consulta información detallada de una empresa incluyendo histórico de precios
+ *     tags: [Trading]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la empresa
+ *       - in: query
+ *         name: dias
+ *         schema:
+ *           type: integer
+ *           default: 30
+ *         description: Número de días de histórico de precios
+ *     responses:
+ *       200:
+ *         description: Detalle de empresa obtenido exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/DetalleEmpresa'
+ *       400:
+ *         description: ID de empresa inválido
+ *       401:
+ *         description: Token de autenticación inválido o faltante
+ *       403:
+ *         description: Usuario sin permisos de TRADER
+ *       500:
+ *         description: Error interno del servidor
+ */
+
+/**
+ * @swagger
+ * /api/trader/posicion/{id_user}/{id_empresa}:
+ *   get:
+ *     summary: Obtener posición de un trader en una empresa
+ *     description: Consulta la cantidad de acciones y costo promedio que tiene un trader en una empresa específica
+ *     tags: [Trading]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id_user
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID del trader
+ *       - in: path
+ *         name: id_empresa
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID de la empresa
+ *     responses:
+ *       200:
+ *         description: Posición obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/PosicionTrader'
+ *       400:
+ *         description: Parámetros inválidos
+ *       401:
+ *         description: Token de autenticación inválido o faltante
+ *       403:
+ *         description: Usuario sin permisos de TRADER
+ *       500:
+ *         description: Error interno del servidor
+ */
+
+/**
+ * @swagger
+ * /api/trader/trading/comprar:
+ *   post:
+ *     summary: Comprar acciones
+ *     description: Realiza la compra de acciones de una empresa. Se valida saldo disponible y se actualiza el portafolio
+ *     tags: [Trading]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ComprarAccionesDto'
+ *     responses:
+ *       200:
+ *         description: Compra realizada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Compra exitosa de 10 acciones de Empresa XYZ"
+ *       400:
+ *         description: Datos inválidos o saldo insuficiente
+ *       401:
+ *         description: Token de autenticación inválido o faltante
+ *       403:
+ *         description: Usuario sin permisos de TRADER
+ *       500:
+ *         description: Error interno del servidor
+ */
+
+/**
+ * @swagger
+ * /api/trader/trading/vender:
+ *   post:
+ *     summary: Vender acciones
+ *     description: Realiza la venta de acciones de una empresa. Se valida que el trader tenga acciones suficientes
+ *     tags: [Trading]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/VenderAccionesDto'
+ *     responses:
+ *       200:
+ *         description: Venta realizada exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Venta exitosa de 5 acciones de Empresa XYZ"
+ *       400:
+ *         description: Datos inválidos o acciones insuficientes
+ *       401:
+ *         description: Token de autenticación inválido o faltante
+ *       403:
+ *         description: Usuario sin permisos de TRADER
+ *       500:
+ *         description: Error interno del servidor
+ */
+
+/**
+ * @swagger
+ * /api/trader/portafolio:
+ *   get:
+ *     summary: Obtener portafolio completo
+ *     description: Consulta todas las posiciones abiertas del trader con ganancias/pérdidas actuales
+ *     tags: [Trading]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Portafolio obtenido exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/Portafolio'
+ *       401:
+ *         description: Token de autenticación inválido o faltante
+ *       403:
+ *         description: Usuario sin permisos de TRADER
+ *       500:
+ *         description: Error interno del servidor
+ */
+
+/**
+ * @swagger
+ * /api/trader/portafolio/liquidar-todo:
+ *   post:
+ *     summary: Liquidar todas las posiciones
+ *     description: Vende todas las acciones del portafolio. Requiere confirmación con contraseña
+ *     tags: [Trading]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LiquidarTodoDto'
+ *     responses:
+ *       200:
+ *         description: Liquidación exitosa
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Portafolio liquidado exitosamente"
+ *       400:
+ *         description: Datos inválidos o contraseña incorrecta
+ *       401:
+ *         description: Token de autenticación inválido o faltante
+ *       403:
+ *         description: Usuario sin permisos de TRADER
+ *       500:
+ *         description: Error interno del servidor
  */
 export class TradingController {
   public router: Router
@@ -22,7 +293,7 @@ export class TradingController {
   }
 
   private initializeRoutes() {
-    // 🔹 Portada general
+    //  Portada general
     this.router.get(
       '/portada',
       JwtAuthGuard.middleware(),
@@ -30,7 +301,7 @@ export class TradingController {
       this.getPortada.bind(this)
     )
 
-    // 🔹 Detalle de empresa
+    //  Detalle de empresa
     this.router.get(
       '/empresas/:id',
       JwtAuthGuard.middleware(),
@@ -38,7 +309,7 @@ export class TradingController {
       this.getDetalleEmpresa.bind(this)
     )
 
-    // 🔹 Obtener posición de un trader en una empresa
+    //  Obtener posición de un trader en una empresa
     this.router.get(
       '/posicion/:id_user/:id_empresa',
       JwtAuthGuard.middleware(),
@@ -46,7 +317,7 @@ export class TradingController {
       this.getPosicionTrader.bind(this)
     )
 
-    // 🔹 Comprar acciones
+    //  Comprar acciones
     this.router.post(
       '/trading/comprar',
       JwtAuthGuard.middleware(),
@@ -55,7 +326,7 @@ export class TradingController {
       this.comprarAcciones.bind(this)
     )
 
-    // 🔹 Vender acciones
+    //  Vender acciones
     this.router.post(
       '/trading/vender',
       JwtAuthGuard.middleware(),
@@ -64,7 +335,7 @@ export class TradingController {
       this.venderAcciones.bind(this)
     )
 
-    // 🔹 Portafolio completo
+    //  Portafolio completo
     this.router.get(
       '/portafolio',
       JwtAuthGuard.middleware(),
@@ -72,7 +343,7 @@ export class TradingController {
       this.getPortafolio.bind(this)
     )
 
-    // 🔹 Liquidar todo
+    //  Liquidar todo
     this.router.post(
       '/portafolio/liquidar-todo',
       JwtAuthGuard.middleware(),

@@ -4,6 +4,7 @@ import { RolesGuard } from '../../auth/Guards/roles.guard';
 import { validateDto } from '../../../common/validate-dto';
 import { CreateMercadoDto } from '../DTOs/create-mercado.dto';
 import { UpdateMercadoDto } from '../DTOs/update-mercado.dto';
+import { DisableMercadoDto } from '../DTOs/disable-mercado.dto';
 import { MercadosService } from '../Services/mercados.service';
 
 /**
@@ -362,10 +363,14 @@ router.put(
 
 /**
  * @swagger
- * /api/admin/mercados/{id}:
- *   delete:
- *     summary: Eliminar un mercado
- *     description: Elimina un mercado del sistema. Solo se puede eliminar si no tiene empresas activas. Solo administradores pueden realizar esta acción.
+ * /api/admin/mercados/{id}/disable:
+ *   patch:
+ *     summary: Deshabilitar un mercado
+ *     description: |
+ *       Deshabilita un mercado y DELISTA AUTOMÁTICAMENTE todas sus empresas activas.
+ *       Esto causa la liquidación de todas las posiciones de todos los traders en esas empresas.
+ *       OPERACIÓN CRÍTICA Y MASIVA - Usar con precaución.
+ *       Solo administradores pueden realizar esta acción.
  *     tags: [Gestión de Mercados (Admin)]
  *     security:
  *       - bearerAuth: []
@@ -375,10 +380,16 @@ router.put(
  *         required: true
  *         schema:
  *           type: integer
- *         description: ID del mercado
+ *         description: ID del mercado a deshabilitar
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/DisableMercadoDto'
  *     responses:
  *       200:
- *         description: Mercado eliminado exitosamente
+ *         description: Mercado deshabilitado y empresas delistadas exitosamente
  *         content:
  *           application/json:
  *             schema:
@@ -389,9 +400,15 @@ router.put(
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Mercado eliminado correctamente"
+ *                   example: "Mercado 'NASDAQ' deshabilitado correctamente. Se delistaron 10 empresas."
+ *                 empresas_delistadas:
+ *                   type: integer
+ *                   example: 10
+ *                 total_posiciones_liquidadas:
+ *                   type: integer
+ *                   example: 0
  *       400:
- *         description: ID inválido o mercado tiene empresas activas
+ *         description: ID inválido o mercado ya está deshabilitado
  *       401:
  *         description: No autenticado
  *       403:
@@ -399,16 +416,18 @@ router.put(
  *       404:
  *         description: Mercado no encontrado
  */
-router.delete(
-  '/:id',
+router.patch(
+  '/:id/disable',
   JwtAuthGuard.middleware(),
   RolesGuard.adminOnly(),
+  validateDto(DisableMercadoDto),
   async (req: any, res: Response) => {
     try {
       const adminId = req.user.id_user as number;
       const adminAlias = req.user.alias as string;
       const adminRole = req.user.role.role_name as string;
       const id = parseInt(req.params.id);
+      const dto: DisableMercadoDto = req.body;
 
       if (isNaN(id)) {
         return res.status(400).json({
@@ -417,7 +436,13 @@ router.delete(
         });
       }
 
-      const result = await service.delete(id, adminId, adminAlias, adminRole);
+      const result = await service.disable(
+        id, 
+        dto.justificacion,
+        adminId, 
+        adminAlias, 
+        adminRole
+      );
 
       res.status(200).json(result);
     } catch (error: any) {
@@ -428,14 +453,14 @@ router.delete(
         });
       }
 
-      if (error.message === 'MERCADO_HAS_ACTIVE_EMPRESAS') {
+      if (error.message === 'El mercado ya está deshabilitado') {
         return res.status(400).json({
           success: false,
-          message: 'No se puede eliminar un mercado con empresas activas'
+          message: error.message
         });
       }
 
-      console.error('Error al eliminar mercado:', error);
+      console.error('Error al deshabilitar mercado:', error);
       res.status(500).json({
         success: false,
         message: 'Error interno del servidor'

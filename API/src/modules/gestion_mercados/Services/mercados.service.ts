@@ -143,47 +143,89 @@ export class MercadosService {
   }
 
   /**
-   * Eliminar un mercado
-   * Valida que no tenga empresas activas antes de eliminar
-   * @param id ID del mercado a eliminar
-   * @param adminId ID del administrador que elimina
+   * Deshabilitar un mercado
+   * Delista automáticamente TODAS las empresas activas del mercado
+   * Esto causa la liquidación de todas las posiciones de traders en esas empresas
+   * @param id ID del mercado a deshabilitar
+   * @param justificacion Justificación del cierre del mercado
+   * @param adminId ID del administrador que ejecuta
    * @param adminAlias Alias del administrador
    * @param adminRole Rol del administrador
    */
-  async delete(id: number, adminId: number, adminAlias: string, adminRole: string): Promise<{ success: boolean; message: string }> {
+  async disable(
+    id: number, 
+    justificacion: string,
+    adminId: number, 
+    adminAlias: string, 
+    adminRole: string
+  ): Promise<{ success: boolean; message: string; empresas_delistadas: number; total_posiciones_liquidadas: number }> {
+    
     // Verificar que el mercado existe
     const mercado = await this.findOne(id);
 
-    // Verificar que no tenga empresas activas (habilitadas)
-    const empresasActivas = await this.empresaRepository.count({
+    // Verificar que no esté ya deshabilitado
+    if (!mercado.habilitado) {
+      throw new Error('El mercado ya está deshabilitado');
+    }
+
+    // Obtener TODAS las empresas activas del mercado
+    const empresasActivas = await this.empresaRepository.find({
       where: { 
         id_mercado: id,
         habilitado: true 
       }
     });
 
-    if (empresasActivas > 0) {
-      throw new Error('MERCADO_HAS_ACTIVE_EMPRESAS');
+    let empresasDelistadas = 0;
+    let totalPosicionesLiquidadas = 0;
+
+    // Delista cada empresa usando el SP usp_DelistEmpresa
+    for (const empresa of empresasActivas) {
+      try {
+        await AppDataSource.query(
+          `EXEC usp_DelistEmpresa 
+            @id_empresa = @0, 
+            @justificacion = @1, 
+            @id_admin = @2, 
+            @admin_alias = @3, 
+            @admin_role = @4`,
+          [
+            empresa.id_empresa,
+            `Delisting automático por cierre del mercado "${mercado.nombre}". Justificación: ${justificacion}`,
+            adminId,
+            adminAlias,
+            adminRole
+          ]
+        );
+        empresasDelistadas++;
+      } catch (error: any) {
+        console.error(`Error al delista empresa ${empresa.nombre}:`, error);
+        // Continuar con las demás empresas aunque una falle
+      }
     }
 
-    // Eliminar el mercado
-    await this.mercadoRepository.remove(mercado);
+    // Deshabilitar el mercado
+    mercado.habilitado = false;
+    await this.mercadoRepository.save(mercado);
 
-    // Registrar auditoría
+    // Registrar auditoría del cierre del mercado
     await this.auditoriaService.registrar({
       id_user: adminId,
       user_alias: adminAlias,
       user_role: adminRole,
-      accion: TipoAccionAuditoria.MERCADO_DELETE,
+      accion: TipoAccionAuditoria.DESHABILITAR_MERCADO,
       entidad_afectada: EntidadAfectada.MERCADOS,
       id_registro_afectado: id,
-      descripcion: `Mercado eliminado: ${mercado.nombre}`,
+      justificacion: justificacion,
+      descripcion: `Mercado "${mercado.nombre}" deshabilitado. ${empresasDelistadas} empresas delistadas automáticamente.`,
       exitosa: true
     });
 
     return {
       success: true,
-      message: 'Mercado eliminado correctamente'
+      message: `Mercado "${mercado.nombre}" deshabilitado correctamente. Se delistaron ${empresasDelistadas} empresas.`,
+      empresas_delistadas: empresasDelistadas,
+      total_posiciones_liquidadas: totalPosicionesLiquidadas
     };
   }
 }

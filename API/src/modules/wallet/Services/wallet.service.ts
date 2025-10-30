@@ -68,56 +68,104 @@ export class WalletService {
    */
   async recargarWallet(id_user: number, monto: number, alias: string) {
     try {
-      const wallet = await this.walletRepository.findOne({ where: { id_user } });
-      if (!wallet)
-        throw new Error('Wallet no encontrado. Contacta al administrador para crear tu wallet.');
+      // NOTA: Se usa query raw para evitar problemas de concurrencia
+      const result = await AppDataSource.query(
+        `
+        DECLARE @consumo_actual DECIMAL(15,2);
+        DECLARE @fecha_ultima_recarga DATE;
+        DECLARE @hoy DATE = CAST(GETDATE() AS DATE);
+        DECLARE @saldo_anterior DECIMAL(15,2);
+        DECLARE @limite DECIMAL(15,2);
+        
+        -- Obtener datos actuales
+        SELECT 
+          @consumo_actual = consumo_dia,
+          @fecha_ultima_recarga = CAST(fecha_ultima_recarga AS DATE),
+          @saldo_anterior = saldo,
+          @limite = limite_diario
+        FROM wallets
+        WHERE id_user = @0;
+        
+        -- Si es un nuevo día, resetear consumo
+        IF @fecha_ultima_recarga IS NULL OR @fecha_ultima_recarga < @hoy
+        BEGIN
+          SET @consumo_actual = 0;
+        END
+        
+        -- Calcular disponible
+        DECLARE @disponible DECIMAL(15,2) = @limite - @consumo_actual;
+        
+        -- Validar límite
+        IF @1 > @disponible
+        BEGIN
+          SELECT 
+            0 AS exito,
+            @limite AS limite_diario,
+            @consumo_actual AS consumo_dia,
+            @disponible AS disponible_hoy,
+            'LIMITE_EXCEDIDO' AS error;
+          RETURN;
+        END
+        
+        -- Aplicar recarga
+        UPDATE wallets
+        SET 
+          saldo = saldo + @1,
+          consumo_dia = @consumo_actual + @1,
+          fecha_ultima_recarga = GETDATE()
+        WHERE id_user = @0;
+        
+        -- Retornar resultado
+        SELECT 
+          1 AS exito,
+          saldo AS saldo,
+          categoria,
+          limite_diario,
+          consumo_dia,
+          (limite_diario - consumo_dia) AS disponible_hoy,
+          fecha_ultima_recarga,
+          @saldo_anterior AS saldo_anterior,
+          id_wallet
+        FROM wallets
+        WHERE id_user = @0;
+        `,
+        [id_user, monto]
+      );
 
-      const hoy = new Date().toISOString().split('T')[0];
-      let fechaUltimaRecargaStr = wallet.fecha_ultima_recarga
-        ? new Date(wallet.fecha_ultima_recarga).toISOString().split('T')[0]
-        : '';
+      const data = result[0];
 
-      if (fechaUltimaRecargaStr !== hoy) wallet.consumo_dia = 0;
-
-      const disponibleHoy = wallet.limite_diario - wallet.consumo_dia;
-      if (monto > disponibleHoy) {
+      // Validar si excedió el límite
+      if (data.exito === 0) {
         throw new Error(
           `No puedes recargar $${monto.toFixed(2)}. ` +
-            `Tu límite diario es $${wallet.limite_diario.toFixed(2)} ` +
-            `y ya has recargado $${wallet.consumo_dia.toFixed(2)} hoy. ` +
-            `Disponible: $${disponibleHoy.toFixed(2)}`
+            `Tu límite diario es $${data.limite_diario.toFixed(2)} ` +
+            `y ya has recargado $${data.consumo_dia.toFixed(2)} hoy. ` +
+            `Disponible: $${data.disponible_hoy.toFixed(2)}`
         );
       }
 
-      const saldoAnterior = wallet.saldo;
-
-      wallet.saldo += monto;
-      wallet.consumo_dia += monto;
-      wallet.fecha_ultima_recarga = new Date();
-
-      await this.walletRepository.save(wallet);
-
+      // Registrar en auditoría
       await this.auditoriaService.registrar({
         id_user,
         user_alias: alias,
         accion: TipoAccionAuditoria.RECARGA_WALLET,
         entidad_afectada: EntidadAfectada.WALLET,
-        id_registro_afectado: wallet.id_wallet,
+        id_registro_afectado: data.id_wallet,
         monto_operacion: monto,
-        saldo_anterior: saldoAnterior,
-        saldo_nuevo: wallet.saldo,
-        descripcion: `Recarga de wallet por $${monto.toFixed(2)}. Categoría: ${wallet.categoria}`,
+        saldo_anterior: data.saldo_anterior,
+        saldo_nuevo: data.saldo,
+        descripcion: `Recarga de wallet por $${monto.toFixed(2)}. Categoría: ${data.categoria}`,
         exitosa: true
       });
 
       return {
-        id_wallet: wallet.id_wallet,
-        saldo: wallet.saldo,
-        categoria: wallet.categoria,
-        limite_diario: wallet.limite_diario,
-        consumo_dia: wallet.consumo_dia,
-        disponible_hoy: Math.max(0, wallet.limite_diario - wallet.consumo_dia),
-        fecha_ultima_recarga: wallet.fecha_ultima_recarga
+        id_wallet: data.id_wallet,
+        saldo: data.saldo,
+        categoria: data.categoria,
+        limite_diario: data.limite_diario,
+        consumo_dia: data.consumo_dia,
+        disponible_hoy: Math.max(0, data.disponible_hoy),
+        fecha_ultima_recarga: data.fecha_ultima_recarga
       };
     } catch (error) {
       console.error('Error al recargar wallet:', error);
@@ -126,7 +174,7 @@ export class WalletService {
   }
 
   /**
-   * 🔹 Obtiene el historial de recargas desde la tabla de auditoría
+   * Obtiene el historial de recargas desde la tabla de auditoría
    */
   async getHistorialRecargas(id_user: number) {
     try {

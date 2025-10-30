@@ -29,7 +29,7 @@ export class JwtService {
    * Generar access token (corta duración)
    */
   private generateAccessToken(payload: JwtPayload): string {
-    return jwt.sign(payload, ENV.JWT_SECRET, {
+    return jwt.sign(payload, ENV.JWT_SECRET, {  // secreto utilizado para el signature del token
       expiresIn: ENV.JWT_ACCESS_EXPIRATION as any,
       issuer: 'BrokerTEC',
       audience: 'BrokerTEC-Users'

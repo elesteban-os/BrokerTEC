@@ -1,3 +1,8 @@
+/**
+ * Configuración de variables de entorno
+ * Carga las variables desde un archivo .env y las valida
+ */
+
 import dotenv from 'dotenv';
 dotenv.config({ override: true });
 

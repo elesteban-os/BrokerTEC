@@ -3,7 +3,6 @@ import { MigrationInterface, QueryRunner, TableColumn } from "typeorm";
 /**
  * Migración: Agregar campo ganancia_perdida a tabla auditoria
  * 
- * Fase 7: Compra y Venta de Acciones
  * Registra la ganancia o pérdida en operaciones de venta
  * Positivo = ganancia, Negativo = pérdida
  */

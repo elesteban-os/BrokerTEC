@@ -147,8 +147,8 @@ const router = Router();
 const adminRegisterService = new AdminRegisterService();
 
 router.post('/admin/register', 
-  JwtAuthGuard.middleware(),
-  RolesGuard.adminOnly(),
+  JwtAuthGuard.middleware(), // Asegura que el usuario esté autenticado
+  RolesGuard.adminOnly(), // Solo Administradores pueden registrar nuevos admins/analistas
   validateDto(AdminRegisterDto), 
   async (req: any, res: Response) => {
   try {

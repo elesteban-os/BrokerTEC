@@ -1,9 +1,9 @@
--- =============================================
+
 -- Stored Procedure: usp_LiquidarTodoTrader
 -- Descripción: Vende TODAS las posiciones de un trader al precio actual
 -- Requiere validación de contraseña previa en la API
 -- Maneja la transacción completa de forma atómica
--- =============================================
+
 
 CREATE OR ALTER PROCEDURE usp_LiquidarTodoTrader
     @id_user INT,                    -- ID del trader que liquida
@@ -38,10 +38,9 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
         
-        -- =============================================
+        -- ==============================================================
         -- 1. VALIDACIONES INICIALES
-        -- =============================================
-        
+  
         -- Obtener wallet del trader
         SELECT @id_wallet = id_wallet, @saldo_inicial = saldo
         FROM wallets
@@ -68,9 +67,9 @@ BEGIN
             RETURN;
         END
         
-        -- =============================================
-        -- 2. CREAR TABLA TEMPORAL PARA PROCESAR
-        -- =============================================
+        -- ======================================================================
+        -- 2. CREAR TABLA TEMPORAL PARA PROCESAR POSICIONES
+        
         
         CREATE TABLE #PosicionesALiquidar (
             id_posicion INT,
@@ -111,10 +110,9 @@ BEGIN
             RETURN;
         END
         
-        -- =============================================
+        -- ======================================================================
         -- 3. CALCULAR TOTALES
-        -- =============================================
-        
+   
         SELECT 
             @total_recibido = SUM(monto_venta),
             @total_invertido = SUM(valor_invertido),
@@ -122,9 +120,9 @@ BEGIN
             @cantidad_acciones_vendidas = SUM(cantidad)
         FROM #PosicionesALiquidar;
         
-        -- =============================================
+        -- ======================================================================
         -- 4. ACTUALIZAR WALLET
-        -- =============================================
+   
         
         UPDATE wallets
         SET saldo = saldo + @total_recibido
@@ -132,9 +130,9 @@ BEGIN
         
         SET @saldo_final = @saldo_inicial + @total_recibido;
         
-        -- =============================================
+        -- ======================================================================
         -- 5. PROCESAR CADA POSICIÓN
-        -- =============================================
+     
         
         DECLARE cursor_posiciones CURSOR FOR
         SELECT id_posicion, id_empresa, nombre_empresa, cantidad, costo_promedio, 
@@ -204,9 +202,9 @@ BEGIN
         CLOSE cursor_posiciones;
         DEALLOCATE cursor_posiciones;
         
-        -- =============================================
+        -- ======================================================================
         -- 6. LIMPIAR Y COMMIT
-        -- =============================================
+   
         
         DROP TABLE #PosicionesALiquidar;
         

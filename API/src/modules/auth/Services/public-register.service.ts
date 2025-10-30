@@ -76,9 +76,8 @@ export class PublicRegisterService {
       await this.phoneNumberRepository.save(phoneNumbers);
     }
 
-    // =============================================
+    // ========================================================================================
     // CREAR WALLET AUTOMÁTICAMENTE PARA TRADER
-    // =============================================
     // Como es registro público, siempre será TRADER
     // Se llama al Stored Procedure para crear el wallet con categoría JUNIOR por defecto
     try {

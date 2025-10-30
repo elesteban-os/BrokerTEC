@@ -24,6 +24,7 @@ BEGIN
     DECLARE @precio_actual DECIMAL(15, 2);
     DECLARE @costo_promedio DECIMAL(15, 2);
     DECLARE @monto_liquidacion DECIMAL(15, 2);
+    DECLARE @ganancia_perdida DECIMAL(15, 2);
     DECLARE @nombre_empresa NVARCHAR(100);
     DECLARE @saldo_anterior DECIMAL(15, 2);
     DECLARE @saldo_nuevo DECIMAL(15, 2);
@@ -81,6 +82,9 @@ BEGIN
             -- Calcular monto de liquidación (precio actual × cantidad)
             SET @monto_liquidacion = @cantidad * @precio_actual;
             
+            -- Calcular ganancia o pérdida: (precio_actual - costo_promedio) × cantidad
+            SET @ganancia_perdida = (@precio_actual - @costo_promedio) * @cantidad;
+            
             -- Obtener saldo actual del wallet
             SELECT @saldo_anterior = saldo
             FROM wallets
@@ -91,12 +95,17 @@ BEGIN
             SET saldo = saldo + @monto_liquidacion
             WHERE id_user = @id_trader;
             
+            -- DEVOLVER ACCIONES AL INVENTARIO DE LA EMPRESA
+            UPDATE empresas
+            SET cantidad_acciones = cantidad_acciones + @cantidad
+            WHERE id_empresa = @id_empresa;
+            
             -- Obtener nuevo saldo
             SELECT @saldo_nuevo = saldo
             FROM wallets
             WHERE id_user = @id_trader;
             
-            -- Registrar auditoría de la liquidación
+            -- Registrar auditoría de la liquidación como VENTA
             INSERT INTO auditoria (
                 id_user,
                 user_alias,
@@ -110,6 +119,7 @@ BEGIN
                 monto_operacion,
                 saldo_anterior,
                 saldo_nuevo,
+                ganancia_perdida,
                 justificacion,
                 descripcion,
                 fecha_hora,
@@ -119,7 +129,7 @@ BEGIN
                 @id_trader,
                 @trader_alias,
                 'TRADER',
-                'LIQUIDACION_DESHABILITACION',
+                'VENTA',
                 'posiciones',
                 @id_posicion,
                 @nombre_empresa,
@@ -128,8 +138,9 @@ BEGIN
                 @monto_liquidacion,
                 @saldo_anterior,
                 @saldo_nuevo,
+                @ganancia_perdida,
                 @justificacion,
-                'Liquidación automática por deshabilitación de cuenta',
+                'Venta automática por deshabilitación de cuenta',
                 GETDATE(),
                 1
             );
