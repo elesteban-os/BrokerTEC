@@ -8,6 +8,8 @@ Sistema de trading desarrollado con Node.js, TypeScript y SQL Server.
 - **SQL Server** (local)
 - **npm** o **yarn**
 
+## Configurar Backend
+
 ### 1. Clonar e instalar dependencias
 
 ```bash
@@ -48,6 +50,25 @@ npm start
 ```
 
 El servidor estará disponible en `http://localhost:3000`
+
+## Configurar Frontend
+El frontend se encuentra en la carpeta `/frontend/broker-tec`. Para descargar e instalar las dependencias utilizar el siguiente comando:
+
+```bash
+npm install
+```
+
+Luego, solo es necesario ejecutar el proyecto con el comando:
+
+```bash
+npm run dev:3001
+```
+
+Asegurese de especificar el puerto en donde está el "3001" para no tener problemas con el puerto de la API.
+
+En su navegador preferido, abrir la página web: [http://localhost:3001](http://localhost:3001) y con ello ya se puede utilizar la página web.
+
+
 
 ## Scripts Disponibles
 
