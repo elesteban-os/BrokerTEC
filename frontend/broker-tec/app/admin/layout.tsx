@@ -2,15 +2,19 @@
 
 import type React from "react"
 
-import { Building2, DollarSign, LayoutDashboard, LogOut, UserCircle, Users } from "lucide-react"
+import { Building2, DollarSign, LayoutDashboard, LogOut, UserCircle, Users, Menu } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { useState } from "react"
 import { DataProvider } from "@/lib/data-context"
 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true)
+  const router = useRouter()
 
   const navItems = [
     {
@@ -44,29 +48,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <DataProvider>
       <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <aside className="w-64 border-r bg-card">
-        <div className="flex h-16 items-center border-b px-6">
-          <h1 className="text-xl font-bold text-primary">BrokerTEC</h1>
+      <aside className={`${isSidebarOpen ? 'w-58' : 'w-14'} relative transition-all duration-150 border-r bg-card overflow-hidden`}>
+        <div className="flex h-16 items-center border-b px-3 gap-3">
+          <Button variant="ghost" size="icon" onClick={() => setIsSidebarOpen((s) => !s)} aria-label="Toggle sidebar">
+            <Menu className="h-5 w-5" />
+          </Button>
+          {isSidebarOpen && <h1 className="text-xl font-bold text-primary">BrokerTEC</h1>}
         </div>
-        <nav className="flex flex-col gap-2 p-4">
+        <nav className="flex flex-col gap-2 p-2">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href
             return (
-              <Link key={item.href} href={item.href}>
-                <Button variant={isActive ? "default" : "ghost"} className="w-full justify-start gap-3">
+              <div key={item.href}>
+                <Button
+                  variant={isActive ? "default" : "ghost"}
+                  className="w-full justify-start gap-3"
+                  onClick={() => {
+                    // programmatic navigation to allow extra behavior (close sidebar)
+                    setIsSidebarOpen(false)
+                    router.push(item.href)
+                  }}
+                >
                   <Icon className="h-5 w-5" />
-                  {item.label}
+                  {isSidebarOpen && <span>{item.label}</span>}
                 </Button>
-              </Link>
+              </div>
             )
           })}
         </nav>
-        <div className="absolute bottom-4 left-4 right-4">
+        <div className="absolute bottom-4 left-2 right-2">
           <Link href="/">
-            <Button variant="outline" className="justify-start gap-3 bg-transparent">
+            <Button variant="outline" className="justify-start gap-3 bg-transparent w-full">
               <LogOut className="h-5 w-5" />
-              Cerrar Sesión
+              {isSidebarOpen && <span>Cerrar Sesión</span>}
             </Button>
           </Link>
         </div>

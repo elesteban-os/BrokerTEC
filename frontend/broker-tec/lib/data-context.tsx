@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
-import { get } from "react-hook-form"
+import { get, set } from "react-hook-form"
 
 export interface Market {
   id: string
@@ -56,7 +56,7 @@ export interface User {
   status: "active" | "disabled"
   wallet?: number
   enabledMarkets?: string[]
-  category?: "basic" | "intermediate" | "advanced"
+  category?: "JUNIOR" | "MID" | "SENIOR"
   operationLimit?: number
   createdAt: Date
 }
@@ -75,7 +75,7 @@ export interface UserCreation {
   status: "active" | "disabled"
   wallet?: number
   enabledMarkets?: string[]
-  category?: "basic" | "intermediate" | "advanced"
+  category?: "JUNIOR" | "MID" | "SENIOR"
   operationLimit?: number
   createdAt: Date
 }
@@ -119,8 +119,9 @@ interface DataContextType {
   deleteCompany: (id: string) => void
   delistCompany: (id: string, reason: string) => Promise<{ success: boolean; message: string }>
   getCompanies: () => Promise<{ success: boolean; message: string }>
+  getUsers: () => Promise<{ success: boolean; message: string }>
   addUser: (user: Omit<UserCreation, "id" | "createdAt">) => Promise<{ success: boolean; message: string }>
-  updateUser: (id: string, user: Partial<User>) => void
+  updateUser: (id: string, user: Partial<User>) => Promise<{ success: boolean; message: string }> 
   disableUser: (id: string, reason: string) => Promise<{ success: boolean; message: string }>
   addPriceHistory: (price: Omit<PriceHistory, "id">) => void
   updatePriceManual: (companyId: string, price: number) => Promise<{ success: boolean; message: string }>
@@ -351,7 +352,74 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const [transactions, setTransactions] = useState<Transaction[]>([])
 
-  
+  const getUsers = async (): Promise<{ success: boolean; message: string }> => {
+    // Obtener traders desde la API
+    console.log("Fetching traders from API...")
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+      const res = await fetch("/api/admin/traders", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: "include",
+      })
+
+      const payload = await res.json().catch(() => ({}))
+      const payload2 = payload.data || payload || []
+
+      if (!res.ok) {
+        console.error("Failed to fetch users:", payload)
+        throw new Error(payload?.message || "Fallo al obtener usuarios")
+      }
+
+      console.log("Raw users payload:", payload)
+
+      const list = (payload.data || payload || []).map((u: any) => ({
+        id: String(u.id_user) ?? (u.id ? String(u.id) : String(Date.now())),
+        alias: u.alias ?? "",
+        email: u.email ?? "",
+        nombre: u.nombre_completo ?? "",
+        apellido1: "",
+        apellido2: "",
+        countryOrigin: u.pais_origen ?? "",
+        phones: u.telefonos ?? [],
+        role: "trader",
+        status:
+          typeof u.habilitado !== "undefined"
+            ? (Boolean(u.habilitado) ? "active" : "disabled")
+            : typeof u.status !== "undefined"
+            ? (u.status === "active" || u.status === true ? "active" : "disabled")
+            : "active",
+        wallet: u.wallet.saldo ?? 0,
+        enabledMarkets: u.mercados_habilitados ?? [],
+        category: u.wallet.categoria ?? "basic",
+        operationLimit: u.wallet.limite_diario ?? 0,
+        createdAt: u.fecha_creacion ? new Date(u.fecha_creacion) : new Date(),
+      })) as User[]
+      console.log("Fetched users:", list)
+
+      const listHistory = (payload2.data || payload2 || []).map((u: any) => ({
+        id: u.id ? String(Date.now()) : String(Date.now()),
+        userId: String(u.id_user) ?? (u.id ? String(u.id) : String(Date.now())),
+        companyId: String(u.id_empresa) ?? (u.id ? String(u.id) : String(Date.now())),
+        shares: 1,
+        averagePrice: u.valor_actual_portafolio ?? 0,
+      })) as Position[]
+
+      console.log("Fetched price histories:", listHistory)
+
+      setPositions(listHistory)
+      setUsers(list)
+      return { success: true, message: "Usuarios cargados" }
+    } catch (err) {
+      console.error("Error fetching users:", err)
+      const e = err as Error
+      return { success: false, message: e.message || "Error al cargar usuarios" }
+    }
+  }
+
   const [users, setUsers] = useState<User[]>([
     {
       id: "user1",
@@ -366,7 +434,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       status: "active",
       wallet: 50000,
       enabledMarkets: ["1", "2"],
-      category: "advanced",
+      category: "SENIOR",
       operationLimit: 100000,
       createdAt: new Date("2024-01-10"),
     },
@@ -383,7 +451,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       status: "active",
       wallet: 25000,
       enabledMarkets: ["1"],
-      category: "intermediate",
+      category: "MID",
       operationLimit: 50000,
       createdAt: new Date("2024-01-15"),
     },
@@ -400,7 +468,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       status: "active",
       wallet: 10000,
       enabledMarkets: ["1"],
-      category: "basic",
+      category: "JUNIOR",
       operationLimit: 20000,
       createdAt: new Date("2024-02-01"),
     },
@@ -764,10 +832,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       getCompanies()
 
-      return { success: true, message: "Empresa deslistada exitosamente" }
+      return { success: true, message: data?.message || "Empresa deslistada exitosamente" }
       
     } catch (error) {
-      return { success: false, message: "Error al deslistar la empresa" }
+      const err = error as Error
+      return { success: false, message: err?.message || "Error al deslistar la empresa" }
     }
   }
 
@@ -781,6 +850,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createdAt: new Date(),
     }
 
+    console.log("Adding new usererrrrr:", newUser)
     // Verificar tipo de usuario y guardar en BD por medio de API
     if (newUser.role === "admin") {
       // Crear JSON que API espera
@@ -793,6 +863,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
         "password": newUser.password,
         "country_origin": newUser.countryOrigin,
         "id_role": 1 // admin
+      }
+    } else if (newUser.role === "analista") {
+      const bodyJSON = {
+        "alias": newUser.alias,
+        "email": newUser.email,
+        "nombre": newUser.nombre,
+        "apellido1": newUser.apellido1,
+        "apellido2": newUser.apellido2,
+        "password": newUser.password,
+        "country_origin": newUser.countryOrigin,
+        "id_role": 2 // analista
       }
 
       // Obtener token de auth
@@ -810,93 +891,91 @@ export function DataProvider({ children }: { children: ReactNode }) {
         })
         const data = await res.json()
         if (!res.ok) {
-          throw new Error(data?.message || "Fallo al registrar admin")
+          throw new Error(data?.message || "Fallo al registrar")
         }
         setUsers([...users, newUser])
-        return { success: true, message: data?.message || "Admin registrado correctamente" }
+        return { success: true, message: data?.message || "Usuario registrado correctamente" }
 
       } catch (err) {
         const error = err as Error
-        console.error("Fallo al registrar admin:", error)
-        return { success: false, message: error?.message || "Fallo al registrar admin" }
+        console.error("Fallo al registrar", error)
+        return { success: false, message: error?.message || "Fallo al registrar " }
       }
     }
-
-    // Fallback: for traders/analysts or when no API is needed, add locally
-    setUsers([...users, newUser])
-    return { success: true, message: "Usuario creado localmente" }
+    return { success: false, message: "No se creó el usuario" }
   }
 
-  const updateUser = (id: string, user: Partial<User>) => {
-    setUsers(users.map((u) => (u.id === id ? { ...u, ...user } : u)))
+  const updateUser = async (id: string, user: Partial<User>) : Promise<{ success: boolean; message: string }> =>{
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+
+    const bodyJSON = {
+      "nueva_categoria": user.category,
+    }
+    try {
+      const response = await fetch(`/api/admin/traders/${id}/categoria`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(bodyJSON),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Fallo al actualizar usuario")
+      }
+
+      setUsers(users.map((u) => (u.id === id ? { ...u, ...user } : u)))
+      return { success: true, message: data?.message || "Usuario actualizado correctamente" }
+    } catch (error) {
+      console.error("Fallo al actualizar usuario", error)
+      const errmsj = error as Error
+      return { success: false, message: errmsj?.message || "Fallo al actualizar usuario" }
+    }
   }
 
   const disableUser = async (id: string, reason: string): Promise<{ success: boolean; message: string }> => {
     const user = users.find((u) => u.id === id)
-    if (!user) {
-      return { success: false, message: "Usuario no encontrado" }
-    }
+    
+      const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null
+      const bodyJSON = {
+        "justificacion": reason,
+      }
+      console.log("Disabling user id:", id, "with reason:", bodyJSON)
 
-    if (user.status === "disabled") {
-      return { success: false, message: "usuario ya deshabilitado" }
-    }
-
-    if (!reason || reason.trim() === "") {
-      return { success: false, message: "justificación requerida" }
-    }
-
-    if (user.role === "trader") {
-      // Find user positions
-      const userPositions = positions.filter((p) => p.userId === id)
-
-      if (userPositions.length > 0) {
-        // Liquidate all positions at current price
-        const newTransactions: Transaction[] = userPositions.map((position) => {
-          const company = companies.find((c) => c.id === position.companyId)
-          const liquidationPrice = company?.currentPrice || 0
-          return {
-            id: `${Date.now()}-${position.id}`,
-            userId: id,
-            companyId: position.companyId,
-            type: "liquidation" as const,
-            shares: position.shares,
-            price: liquidationPrice,
-            total: position.shares * liquidationPrice,
-            reason: `Usuario deshabilitado: ${reason}`,
-            createdAt: new Date(),
-          }
+      try {
+        const response = await fetch(`/api/admin/traders/${id}/deshabilitar`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(bodyJSON),
         })
 
-        // Calculate total liquidation value
-        const totalLiquidation = newTransactions.reduce((sum, t) => sum + t.total, 0)
+        const data = await response.json()
 
-        // Add transactions
-        setTransactions([...transactions, ...newTransactions])
+        if (!response.ok) {
+          throw new Error(data?.message || "Fallo al deshabilitar usuario")
+        }
 
-        // Remove positions
-        setPositions(positions.filter((p) => p.userId !== id))
-
-        // Update user wallet and status
-        setUsers(
-          users.map((u) =>
-            u.id === id ? { ...u, status: "disabled" as const, wallet: (u.wallet || 0) + totalLiquidation } : u,
-          ),
-        )
+        // Deshabilitar usuario en el estado local
+        setUsers(users.map((u) => (u.id === id ? { ...u, status: "disabled" } : u)))
 
         return {
           success: true,
-          message: `Usuario deshabilitado. ${userPositions.length} posiciones liquidadas por $${totalLiquidation.toFixed(2)}.`,
+          message: "Usuario deshabilitado exitosamente.",
         }
+      } catch (error) {
+        console.error("Fallo al deshabilitar usuario", error)
+        const err = error as Error
+        return { success: false, message: err?.message || "Fallo al deshabilitar usuario" }
       }
-    }
+    
+    return { success: false, message: "Fallo al deshabilitar usuario" }
 
-    // No positions or not a trader, just disable
-    setUsers(users.map((u) => (u.id === id ? { ...u, status: "disabled" as const } : u)))
-
-    return {
-      success: true,
-      message: "Usuario deshabilitado exitosamente.",
-    }
   }
 
   const addPriceHistory = (price: Omit<PriceHistory, "id">) => {
@@ -1191,6 +1270,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         deleteCompany,
         delistCompany,
         getCompanies,
+        getUsers,
         addUser,
         updateUser,
         disableUser,
