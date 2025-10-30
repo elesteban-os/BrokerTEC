@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Wallet, Briefcase, AlertTriangle, Loader2, ShieldCheck, BarChart2 } from "lucide-react"
+import { Wallet, Briefcase, AlertTriangle, Loader2, ShieldCheck, BarChart2,UserCircle } from "lucide-react"
 import { fetchTopCompanies, ApiCompany } from "@/lib/trader-api"
 import {
   BarChart,
@@ -208,6 +208,16 @@ export function TraderDashboard() {
               <ShieldCheck className="w-4 h-4 mr-2" />
               Liquidar Todo
             </Button>
+
+            <Button 
+              onClick={() => router.push("/trader/perfil")}
+              variant="outline"
+              className="h-9 px-3 text-sm bg-transparent"
+            >
+              <UserCircle className="w-4 h-4 mr-2" />
+              Mi Perfil
+            </Button>
+
 
             <Button onClick={handleLogout} variant="outline" className="h-10 bg-transparent">
               Cerrar sesión
