@@ -2,8 +2,6 @@
 
 Sistema de trading de acciones desarrollado con Node.js, TypeScript, SQL Server y Next.js.
 
----
-
 ## Tabla de Contenidos
 
 1. [Requisitos Previos](#requisitos-previos)
@@ -11,35 +9,30 @@ Sistema de trading de acciones desarrollado con Node.js, TypeScript, SQL Server 
 3. [Configuración de Base de Datos](#configuración-de-base-de-datos)
 4. [Inicialización de Datos](#inicialización-de-datos)
 5. [Ejecución del Sistema](#ejecución-del-sistema)
-6. [Verificación de Funcionamiento](#verificación-de-funcionamiento)
-7. [Scripts Disponibles](#scripts-disponibles)
-8. [Tecnologías Utilizadas](#tecnologías-utilizadas)
+6. [Usuarios de Prueba](#usuarios-de-prueba)
+7. [Tecnologías Utilizadas](#tecnologías-utilizadas)
 
 ---
 
 ## Requisitos Previos
 
-Antes de comenzar, asegúrese de tener instalado lo siguiente:
-
-- **Node.js** v18 o superior ([Descargar](https://nodejs.org/))
-- **SQL Server** 2019 o superior (local o remoto)
-- **Git** para clonar el repositorio
-- **npm** (incluido con Node.js)
+- **Node.js** v18 o superior
+- **SQL Server** (local)
+- **Git**
+- **npm**
 
 ---
 
 ## Instalación
 
-### Paso 1: Clonar el repositorio
-
-Abra una terminal CMD o PowerShell y ejecute:
+### 1. Clonar el repositorio
 
 ```bash
 git clone <repository-url>
 cd BrokerTEC
 ```
 
-### Paso 2: Instalar dependencias del backend (API)
+### 2. Instalar dependencias del backend
 
 ```bash
 cd API
@@ -47,7 +40,7 @@ npm install
 cd ..
 ```
 
-### Paso 3: Instalar dependencias del frontend
+### 3. Instalar dependencias del frontend
 
 ```bash
 cd frontend\broker-tec
@@ -59,279 +52,196 @@ cd ..\..
 
 ## Configuración de Base de Datos
 
-### Paso 1: Configurar SQL Server
+### 1. Configurar SQL Server
 
-Asegúrese de que su instancia de SQL Server esté configurada correctamente:
+1. El servidor debe estar en el puerto **1435**
+2. Habilitar autenticación mixta:
 
-1. **Verificar el puerto**: El servidor debe estar escuchando en el puerto **1435**.
-2. **Habilitar autenticación mixta**:
-
-   - Abra SQL Server Management Studio (SSMS)
+   - Abrir SQL Server Management Studio (SSMS)
    - Clic derecho en el servidor > Propiedades > Seguridad
-   - Seleccione **"SQL Server and Windows Authentication mode"**
-   - Reinicie el servicio de SQL Server
+   - Seleccionar **"SQL Server and Windows Authentication mode"**
+   - Reiniciar el servicio de SQL Server
 
-3. **Crear la base de datos**:
+3. Crear la base de datos:
    ```sql
    CREATE DATABASE BrokerTEC;
    ```
 
-### Paso 2: Crear usuario de base de datos
+### 2. Crear usuario de base de datos
 
-Ejecute los siguientes comandos en SSMS:
+En SSMS, ejecutar:
 
 ```sql
--- Crear login
 CREATE LOGIN userdev WITH PASSWORD = 'passworddev';
-
--- Usar la base de datos
 USE BrokerTEC;
-
--- Crear usuario
 CREATE USER userdev FOR LOGIN userdev;
-
--- Asignar permisos
 ALTER ROLE db_owner ADD MEMBER userdev;
-
--- Asignar roles de servidor
 USE master;
 ALTER SERVER ROLE sysadmin ADD MEMBER userdev;
 ```
 
-### Paso 3: Verificar variables de entorno
+### 3. Verificar variables de entorno
 
-El archivo `.env` en la carpeta `API` debe contener:
+El archivo `.env` ya existe en `API/.env`. Solo verifica que coincida con tu configuración:
 
 ```env
-NODE_ENV=development
-PORT=3000
-
 DB_HOST=localhost
 DB_PORT=1435
 DB_USER=userdev
 DB_PASS=passworddev
 DB_NAME=BrokerTEC
-DB_ENCRYPT=true
-DB_TRUST_SERVER_CERT=true
-
-JWT_SECRET=BrokerTEC_Super_Secret_Key_2025_Development
-JWT_ACCESS_EXPIRATION=60m
-JWT_REFRESH_EXPIRATION=7d
 ```
-
-**Nota**: Este archivo ya existe en el proyecto. Solo verifique que los valores coincidan con su configuración de SQL Server.
 
 ---
 
 ## Inicialización de Datos
 
-### Opción 1: Crear tablas usando TypeORM (Recomendado)
+### 1. Crear tablas (Opción A - Recomendado)
 
-Abra una terminal CMD en la raíz del proyecto y ejecute:
+Desde la raíz del proyecto:
 
 ```bash
 cd API
 npm run migration:run
 ```
 
-Este comando creará automáticamente todas las tablas necesarias en la base de datos.
+### 1. Crear tablas (Opción B - Manual)
 
-### Opción 2: Crear tablas manualmente
+1. Abrir SQL Server Management Studio
+2. Conectarse a la base de datos **BrokerTEC**
+3. Abrir el archivo `API\src\db\seeds\Create_Tables.sql`
+4. Ejecutar el script
 
-Si prefiere crear las tablas manualmente:
+### 2. Instalar Stored Procedures
 
-1. Abra SQL Server Management Studio
-2. Conéctese a la base de datos **BrokerTEC**
-3. Abra el archivo `API\src\db\seeds\Create_Tables.sql`
-4. Copie el contenido y ejecútelo en una nueva consulta
+**IMPORTANTE**: Antes de iniciar la aplicación, debes instalar los Stored Procedures.
 
-### Poblar la base de datos
+1. En SSMS, conectarse a la base de datos **BrokerTEC**
+2. Ir a la carpeta `API\Stored Procedures`
+3. Ejecutar cada archivo `.sql` en el siguiente orden:
+   - `usp_CreateWalletForTrader.sql`
+   - `usp_ComprarAcciones.sql`
+   - `usp_VenderAcciones.sql`
+   - `usp_LiquidarTodoTrader.sql`
+   - `usp_DelistEmpresa.sql`
+   - `usp_DisableTrader.sql`
+   - `usp_BulkUpdatePrecios.sql`
+   - `usp_GetDistribucionAccionesMercado.sql`
+   - `usp_GetMayorTenedorPorEmpresa.sql`
 
-Una vez creadas las tablas, debe poblar la base de datos con datos de ejemplo:
+### 3. Poblar la base de datos
 
-1. Abra SQL Server Management Studio
-2. Conéctese a la base de datos **BrokerTEC**
-3. Abra el archivo `API\src\db\seeds\simulacion_5_dias_completa.sql`
-4. Copie el contenido y ejecútelo en una nueva consulta
+1. En SSMS, conectarse a la base de datos **BrokerTEC**
+2. Abrir el archivo `API\src\db\seeds\simulacion_5_dias_completa.sql`
+3. Ejecutar el script
 
-Este script insertará:
-
-- Usuarios de ejemplo (administrador, analista, trader)
-- Mercados y empresas
-- Datos históricos de precios
-- Simulación de 5 días de trading
+Esto insertará usuarios de prueba, mercados, empresas y datos históricos.
 
 ---
 
 ## Ejecución del Sistema
 
-**IMPORTANTE**: Debe iniciar primero el backend (API) antes que el frontend para asegurar que los puertos se asignen correctamente.
+**IMPORTANTE**: Ejecutar primero el backend y luego el frontend.
 
-### Paso 1: Iniciar el backend (API)
+### 1. Iniciar el backend (API)
 
-Abra una terminal CMD en la raíz del proyecto:
+Terminal 1:
 
 ```bash
 cd API
 npm run dev
 ```
 
-Debería ver el mensaje:
+Deberías ver: `API running on http://localhost:3000`
 
-```
-API running on http://localhost:3000
-```
+### 2. Iniciar el frontend
 
-**Mantenga esta terminal abierta.**
-
-### Paso 2: Iniciar el frontend
-
-Abra una **segunda terminal CMD** en la raíz del proyecto:
+Terminal 2:
 
 ```bash
 cd frontend\broker-tec
 npm run dev
 ```
 
-Debería ver el mensaje:
+Deberías ver: `Ready on http://localhost:3001`
 
-```
-Ready on http://localhost:3001
-```
+### 3. Acceder a la aplicación
 
-**Mantenga ambas terminales abiertas mientras trabaja con la aplicación.**
-
----
-
-## Verificación de Funcionamiento
-
-### Backend (API)
-
-Acceda a la documentación de la API:
-
-- **Swagger UI**: [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
-
-### Frontend (Aplicación Web)
-
-Acceda a la aplicación en su navegador:
-
-- **URL**: [http://localhost:3001](http://localhost:3001)
-
-### Usuarios de Prueba
-
-Después de poblar la base de datos, puede iniciar sesión con:
-
-| Rol           | Usuario  | Contraseña  |
-| ------------- | -------- | ----------- |
-| Administrador | admin    | admin123    |
-| Analista      | analista | analista123 |
-| Trader        | trader   | trader123   |
+- **Frontend**: http://localhost:3001
+- **API Docs (Swagger)**: http://localhost:3000/api-docs
 
 ---
 
-## Scripts Disponibles
+## Usuarios de Prueba
 
-### Backend (API)
-
-```bash
-npm run dev              # Iniciar servidor en modo desarrollo con hot-reload
-npm run build            # Compilar TypeScript a JavaScript
-npm start                # Iniciar servidor en modo producción
-npm run migration:run    # Ejecutar migraciones de base de datos
-npm run migration:revert # Revertir última migración
-npm run migration:gen    # Generar nueva migración
-```
-
-### Frontend
-
-```bash
-npm run dev              # Iniciar servidor de desarrollo
-npm run build            # Compilar aplicación para producción
-npm start                # Iniciar servidor en modo producción
-npm run lint             # Ejecutar linter
-```
+| Rol           | Usuario  | Contraseña |
+| ------------- | -------- | ---------- |
+| Administrador | admin    | HolaHola1  |
+| Analista      | analista | Holahola1  |
+| Trader        | trader   | Holahola1  |
 
 ---
 
 ## Tecnologías Utilizadas
 
-### Backend
+**Backend:**
 
-- **Node.js** - Entorno de ejecución
-- **TypeScript** - Lenguaje de programación
-- **Express** - Framework web
-- **TypeORM** - ORM para base de datos
-- **SQL Server** - Sistema de gestión de base de datos
-- **JWT** - Autenticación basada en tokens
-- **Swagger** - Documentación de API
+- Node.js + TypeScript
+- Express
+- TypeORM
+- SQL Server
+- JWT
+- Swagger
 
-### Frontend
+**Frontend:**
 
-- **Next.js 15** - Framework de React
-- **TypeScript** - Lenguaje de programación
-- **Tailwind CSS** - Framework de estilos
-- **Shadcn/ui** - Componentes de UI
-- **Recharts** - Gráficos y visualizaciones
+- Next.js 15
+- TypeScript
+- Tailwind CSS
+- Shadcn/ui
+- Recharts
 
 ---
 
-## Estructura del Proyecto
+## Comandos Útiles
 
+**Backend:**
+
+```bash
+npm run dev              # Modo desarrollo
+npm run build            # Compilar proyecto
+npm run migration:run    # Ejecutar migraciones
 ```
-BrokerTEC/
-├── API/
-│   ├── src/
-│   │   ├── config/         # Configuración (DB, Swagger, env)
-│   │   ├── db/             # Migraciones y seeds
-│   │   ├── entities/       # Entidades de TypeORM
-│   │   ├── modules/        # Módulos de la aplicación
-│   │   └── app.ts          # Punto de entrada
-│   ├── .env                # Variables de entorno
-│   └── package.json
-│
-└── frontend/
-    └── broker-tec/
-        ├── app/            # Páginas (Next.js App Router)
-        ├── components/     # Componentes React
-        ├── lib/            # Utilidades y configuración
-        └── package.json
+
+**Frontend:**
+
+```bash
+npm run dev              # Modo desarrollo
+npm run build            # Compilar proyecto
 ```
 
 ---
 
-## Solución de Problemas Comunes
+## Problemas Comunes
 
-### Error: "Cannot connect to SQL Server"
+**No conecta a SQL Server:**
 
-- Verifique que SQL Server esté corriendo
-- Confirme que el puerto 1435 esté abierto
-- Verifique las credenciales en el archivo `.env`
+- Verificar que SQL Server esté corriendo
+- Confirmar puerto 1435
+- Revisar credenciales en `.env`
 
-### Error: "Port 3000 is already in use"
+**Puerto 3000 ocupado:**
 
-- Cierre cualquier aplicación que esté usando el puerto 3000
-- O modifique el puerto en el archivo `.env`
+- Cerrar aplicaciones que usen el puerto
+- O cambiar el puerto en `.env`
 
-### Error: "Migration failed"
+**Error en migraciones:**
 
-- Verifique que la base de datos BrokerTEC exista
-- Confirme que el usuario tenga permisos suficientes
-- Intente crear las tablas manualmente (Opción 2)
+- Verificar que la base de datos exista
+- Confirmar permisos del usuario
+- Intentar crear tablas manualmente
 
-### Frontend no se conecta al backend
+**Frontend no conecta al backend:**
 
-- Verifique que ambos servidores estén corriendo
-- Confirme que el backend esté en el puerto 3000
-- Revise la consola del navegador para ver mensajes de error
-
----
-
-## Contacto y Soporte
-
-Para reportar problemas o solicitar ayuda, por favor abra un issue en el repositorio.
-
----
-
-## Licencia
-
-Este proyecto es privado y está desarrollado con fines académicos.
+- Verificar que ambos servidores estén corriendo
+- Confirmar que el backend esté en puerto 3000
