@@ -71,12 +71,12 @@ export function TenedoresView() {
       })
 
       toast({
-        title: "✅ Reporte generado",
+        title: " Reporte generado",
         description: `Se encontraron ${data.data.tenedores.length} tenedores`,
       })
     } catch (error: any) {
       toast({
-        title: "❌ Error",
+        title: " Error",
         description: error.message || "Error al cargar tenedores",
         variant: "destructive",
       })

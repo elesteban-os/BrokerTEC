@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { PieChart, Building2, Vault, Users, TrendingUp, Percent } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { DistribucionChart } from "./distribucion-chart"
 
 // Estructura para nivel EMPRESA
 interface ItemDistribucionEmpresa {
@@ -111,7 +112,7 @@ export function DistribucionMercadoView() {
     } catch (error: any) {
       console.error("Error al cargar mercados:", error)
       toast({
-        title: "⚠️ Error al cargar mercados",
+        title: " Error al cargar mercados",
         description: error.message || "No se pudieron cargar los mercados disponibles",
         variant: "destructive",
       })
@@ -179,7 +180,7 @@ export function DistribucionMercadoView() {
       }
 
       toast({
-        title: "✅ Distribución cargada",
+        title: " Distribución cargada",
         description: `Análisis ${nivel === "mercado" ? "del mercado" : "por empresa"} completado`,
       })
     } catch (error: any) {
@@ -449,6 +450,20 @@ export function DistribucionMercadoView() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Gráfico de pastel para visualizar la distribución */}
+            {resumen && (
+              <DistribucionChart
+                porcentajeTraders={resumen.porcentaje_traders || 0}
+                porcentajeTesoreria={resumen.porcentaje_tesoreria || 0}
+                nivel={nivel as "empresa" | "mercado"}
+                titulo={
+                  nivel === "empresa"
+                    ? "Distribución por Empresa"
+                    : `Distribución en ${mercados.find(m => m.id_mercado === parseInt(mercadoSeleccionado))?.nombre || "Mercado Seleccionado"}`
+                }
+              />
             )}
           </CardContent>
         </Card>

@@ -70,7 +70,7 @@ export function InventarioTesoreriaView() {
     } catch (error: any) {
       console.error("Error al cargar mercados:", error)
       toast({
-        title: "⚠️ Error al cargar mercados",
+        title: " Error al cargar mercados",
         description: error.message || "No se pudieron cargar los mercados disponibles",
         variant: "destructive",
       })
@@ -110,12 +110,12 @@ export function InventarioTesoreriaView() {
       setResumen(data.data.resumen)
 
       toast({
-        title: "✅ Inventario cargado",
+        title: " Inventario cargado",
         description: `Se encontraron ${data.data.inventario.length} empresas`,
       })
     } catch (error: any) {
       toast({
-        title: "❌ Error",
+        title: " Error",
         description: error.message || "Error al cargar inventario",
         variant: "destructive",
       })

@@ -4,6 +4,7 @@ import { Empresa } from '../../../entities/empresa.entity';
 import { User } from '../../../entities/user.entity';
 import { Posicion } from '../../../entities/posicion.entity';
 import { Mercado } from '../../../entities/mercado.entity';
+import { PrecioHistorico } from '../../../entities/precio-historico.entity';
 import { Repository, In, Between } from 'typeorm';
 import { FilterTransaccionesDTO } from '../DTOs/analista.dto';
 
@@ -18,6 +19,7 @@ export class AnalistaReportesService {
   private userRepository: Repository<User>;
   private posicionRepository: Repository<Posicion>;
   private mercadoRepository: Repository<Mercado>;
+  private precioHistoricoRepository: Repository<PrecioHistorico>;
 
   constructor() {
     this.auditoriaRepository = AppDataSource.getRepository(Auditoria);
@@ -25,6 +27,7 @@ export class AnalistaReportesService {
     this.userRepository = AppDataSource.getRepository(User);
     this.posicionRepository = AppDataSource.getRepository(Posicion);
     this.mercadoRepository = AppDataSource.getRepository(Mercado);
+    this.precioHistoricoRepository = AppDataSource.getRepository(PrecioHistorico);
   }
 
   /**
@@ -451,6 +454,71 @@ export class AnalistaReportesService {
     } catch (error: any) {
       console.error('Error al obtener distribución de mercado:', error);
       throw new Error(`Error al consultar distribución: ${error.message}`);
+    }
+  }
+
+  /**
+   * 6. HISTORIAL DE PRECIOS DE UNA EMPRESA (Para gráfico Precio vs Tiempo)
+   * Obtiene el historial de precios de una empresa para graficar
+   */
+  async getHistorialPrecios(nombre_empresa: string, limit: number = 50) {
+    try {
+      // Validar que la empresa existe
+      const empresa = await this.empresaRepository.findOne({
+        where: { nombre: nombre_empresa, habilitado: true }
+      });
+
+      if (!empresa) {
+        throw new Error(`Empresa "${nombre_empresa}" no encontrada o deshabilitada`);
+      }
+
+      // Obtener historial ordenado por fecha (más reciente primero)
+      const historial = await this.precioHistoricoRepository.find({
+        where: { id_empresa: empresa.id_empresa },
+        order: { fecha_hora: 'DESC' },
+        take: limit
+      });
+
+      // Calcular estadísticas
+      const precios = historial.map(h => h.precio);
+      const precio_actual = empresa.precio_actual;
+      const precio_max = precios.length > 0 ? Math.max(...precios) : 0;
+      const precio_min = precios.length > 0 ? Math.min(...precios) : 0;
+      const precio_promedio = precios.length > 0 
+        ? precios.reduce((sum, p) => sum + Number(p), 0) / precios.length 
+        : 0;
+
+      // Calcular variación desde el precio más antiguo del historial
+      const precio_mas_antiguo = historial.length > 0 ? historial[historial.length - 1].precio : 0;
+      const variacion_monto = Number(precio_actual) - Number(precio_mas_antiguo);
+      const variacion_porcentaje = precio_mas_antiguo > 0 
+        ? ((variacion_monto / Number(precio_mas_antiguo)) * 100) // Porcentaje
+        : 0;
+
+      return {
+        empresa: {
+          id_empresa: empresa.id_empresa,
+          nombre: empresa.nombre,
+          precio_actual: precio_actual
+        },
+        estadisticas: {
+          precio_actual: Number(precio_actual),
+          precio_max: Number(precio_max),
+          precio_min: Number(precio_min),
+          precio_promedio: Number(precio_promedio.toFixed(2)),
+          variacion_monto: Number(variacion_monto.toFixed(2)),
+          variacion_porcentaje: Number(variacion_porcentaje.toFixed(2)),
+          total_registros: historial.length
+        },
+        historial: historial.map(h => ({
+          precio: Number(h.precio),
+          fecha_hora: h.fecha_hora
+        })).reverse() // Invertir para que el gráfico muestre del más antiguo al más reciente
+      };
+
+    } catch (error: any) {
+      console.error('Error al obtener historial de precios:', error);
+      throw new Error(`Error al consultar historial de precios: ${error.message}`);
     }
   }
 }

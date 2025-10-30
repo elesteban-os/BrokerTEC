@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Search, Calendar, TrendingUp, TrendingDown, DollarSign, Filter } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
+import { PrecioVsTiempoChart } from "./precio-vs-tiempo-chart"
 
 interface Transaccion {
   id_auditoria: number
@@ -87,12 +88,12 @@ export function TransaccionesEmpresaView() {
       setTransacciones(data.data.transacciones)
 
       toast({
-        title: "✅ Reporte generado",
+        title: " Reporte generado",
         description: `Se encontraron ${data.data.resumen.total_transacciones} transacciones`,
       })
     } catch (error: any) {
       toast({
-        title: "❌ Error",
+        title: " Error",
         description: error.message || "Error al cargar transacciones",
         variant: "destructive",
       })
@@ -185,55 +186,65 @@ export function TransaccionesEmpresaView() {
         </CardContent>
       </Card>
 
-      {/* Resumen estadístico */}
+      {/* Resumen estadístico + Gráfico */}
       {resumen && empresaInfo && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold">{empresaInfo.nombre}</div>
-              <p className="text-xs text-muted-foreground">
-                {empresaInfo.mercado} • ${empresaInfo.precio_actual}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                Total Transacciones
-              </div>
-              <div className="text-2xl font-bold mt-2">{resumen.total_transacciones}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-sm font-medium text-green-600">
-                <TrendingUp className="h-4 w-4" />
-                Compras
-              </div>
-              <div className="text-2xl font-bold mt-2">{resumen.total_compras}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-sm font-medium text-red-600">
-                <TrendingDown className="h-4 w-4" />
-                Ventas
-              </div>
-              <div className="text-2xl font-bold mt-2">{resumen.total_ventas}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                Monto Total
-              </div>
-              <div className="text-2xl font-bold mt-2">
-                ${resumen.monto_total_operado.toLocaleString()}
-              </div>
-            </CardContent>
-          </Card>
+        <div className="space-y-4">
+          {/* Botón de gráfico */}
+          <div className="flex justify-end">
+            <PrecioVsTiempoChart 
+              nombreEmpresa={empresaInfo.nombre} 
+              token={localStorage.getItem("authToken") || ""} 
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-2xl font-bold">{empresaInfo.nombre}</div>
+                <p className="text-xs text-muted-foreground">
+                  {empresaInfo.mercado} • ${empresaInfo.precio_actual}
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  Total Transacciones
+                </div>
+                <div className="text-2xl font-bold mt-2">{resumen.total_transacciones}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-sm font-medium text-green-600">
+                  <TrendingUp className="h-4 w-4" />
+                  Compras
+                </div>
+                <div className="text-2xl font-bold mt-2">{resumen.total_compras}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-sm font-medium text-red-600">
+                  <TrendingDown className="h-4 w-4" />
+                  Ventas
+                </div>
+                <div className="text-2xl font-bold mt-2">{resumen.total_ventas}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  Monto Total
+                </div>
+                <div className="text-2xl font-bold mt-2">
+                  ${resumen.monto_total_operado.toLocaleString()}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 

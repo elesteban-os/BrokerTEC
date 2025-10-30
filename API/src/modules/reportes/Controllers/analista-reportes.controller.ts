@@ -260,6 +260,49 @@ export class AnalistaReportesController {
       RolesGuard.hasRole(['ANALISTA']),
       this.getDistribucionMercado.bind(this)
     );
+
+    /**
+     * @swagger
+     * /api/analista/reportes/empresa/{nombre}/historial-precios:
+     *   get:
+     *     summary: Obtener historial de precios de una empresa (gráfico Precio vs Tiempo)
+     *     description: |
+     *       **Solo analistas**
+     *       
+     *       Retorna el historial de cambios de precio de una empresa.
+     *       Útil para graficar Precio vs. Tiempo (línea simple).
+     *     tags:
+     *       - Reportes Analista
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: nombre
+     *         required: true
+     *         schema:
+     *           type: string
+     *         description: Nombre completo de la empresa
+     *         example: "Apple Inc."
+     *       - in: query
+     *         name: limit
+     *         schema:
+     *           type: integer
+     *           default: 50
+     *         description: Número máximo de registros históricos
+     *     responses:
+     *       200:
+     *         description: Historial obtenido exitosamente
+     *       404:
+     *         description: Empresa no encontrada
+     *       500:
+     *         description: Error interno del servidor
+     */
+    this.router.get(
+      '/empresa/:nombre/historial-precios',
+      JwtAuthGuard.middleware(),
+      RolesGuard.hasRole(['ANALISTA']),
+      this.getHistorialPrecios.bind(this)
+    );
   }
 
   /**
@@ -477,6 +520,41 @@ export class AnalistaReportesController {
       res.status(500).json({
         success: false,
         message: 'Error al consultar distribución',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * GET /api/analista/reportes/empresa/:nombre/historial-precios
+   * Obtiene historial de precios de una empresa (para gráfico)
+   */
+  private async getHistorialPrecios(req: Request, res: Response): Promise<void> {
+    try {
+      const nombre_empresa = decodeURIComponent(req.params.nombre);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+
+      const resultado = await this.analistaService.getHistorialPrecios(nombre_empresa, limit);
+
+      res.status(200).json({
+        success: true,
+        data: resultado
+      });
+
+    } catch (error: any) {
+      console.error('Error al obtener historial de precios:', error);
+      
+      if (error.message.includes('no encontrada') || error.message.includes('deshabilitada')) {
+        res.status(404).json({
+          success: false,
+          message: error.message
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Error al consultar historial de precios',
         error: error.message
       });
     }

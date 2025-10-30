@@ -41,7 +41,7 @@ export function MarketsTable({ onEdit }: MarketsTableProps) {
       
       if (result.success) {
         toast({
-          title: "✅ Mercado deshabilitado",
+          title: " Mercado deshabilitado",
           description: result.message,
           variant: "default",
         })
@@ -49,14 +49,14 @@ export function MarketsTable({ onEdit }: MarketsTableProps) {
         setMarketToDisable(null)
       } else {
         toast({
-          title: "❌ Error",
+          title: " Error",
           description: result.message,
           variant: "destructive",
         })
       }
     } catch (error) {
       toast({
-        title: "❌ Error",
+        title: " Error",
         description: "Ocurrió un error al deshabilitar el mercado",
         variant: "destructive",
       })

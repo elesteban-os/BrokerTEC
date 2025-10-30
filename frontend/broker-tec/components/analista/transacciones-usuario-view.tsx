@@ -91,12 +91,12 @@ export function TransaccionesUsuarioView() {
       setTransacciones(data.data.transacciones)
 
       toast({
-        title: "✅ Reporte generado",
+        title: " Reporte generado",
         description: `Se encontraron ${data.data.resumen.total_transacciones} transacciones`,
       })
     } catch (error: any) {
       toast({
-        title: "❌ Error",
+        title: " Error",
         description: error.message || "Error al cargar transacciones",
         variant: "destructive",
       })
