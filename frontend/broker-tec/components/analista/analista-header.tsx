@@ -202,7 +202,7 @@ export function AnalistaHeader() {
       }
 
       toast({
-        title: "✅ Contraseña actualizada",
+        title: " Contraseña actualizada",
         description: "Tu contraseña se ha cambiado correctamente",
       });
 
@@ -248,7 +248,7 @@ export function AnalistaHeader() {
       }
 
       toast({
-        title: "✅ Alias actualizado",
+        title: " Alias actualizado",
         description: "Tu alias se ha cambiado correctamente. Actualiza tu sesión.",
       });
 
@@ -310,7 +310,7 @@ export function AnalistaHeader() {
       }
 
       toast({
-        title: "✅ Email actualizado",
+        title: " Email actualizado",
         description: "Tu correo se ha cambiado correctamente",
       });
 
@@ -357,7 +357,7 @@ export function AnalistaHeader() {
       }
 
       toast({
-        title: "✅ Cuenta desactivada",
+        title: " Cuenta desactivada",
         description: "Tu cuenta ha sido desactivada. Redirigiendo...",
       });
 
