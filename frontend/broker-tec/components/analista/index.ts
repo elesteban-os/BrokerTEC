@@ -1,4 +1,5 @@
 // Barrel file para exportar todos los componentes del módulo Analista
+export { AnalistaHeader } from "./analista-header"
 export { TransaccionesEmpresaView } from "./transacciones-empresa-view"
 export { TransaccionesUsuarioView } from "./transacciones-usuario-view"
 export { InventarioTesoreriaView } from "./inventario-tesoreria-view"

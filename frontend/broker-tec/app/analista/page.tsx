@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BarChart3, TrendingUp, Users, Building2, PieChart } from "lucide-react"
 import {
+  AnalistaHeader,
   TransaccionesEmpresaView,
   TransaccionesUsuarioView,
   InventarioTesoreriaView,
@@ -20,16 +21,20 @@ export default function AnalistaPage() {
   const [activeTab, setActiveTab] = useState("empresa-transacciones")
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      {/* Header */}
-      <div className="flex items-center justify-between space-y-2">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Reportes y Análisis</h2>
-          <p className="text-muted-foreground">
-            Consulta estadísticas, transacciones y distribución de acciones del sistema
-          </p>
+    <div className="min-h-screen bg-background">
+      {/* Header con opciones de usuario */}
+      <AnalistaHeader />
+
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+        {/* Header del contenido */}
+        <div className="flex items-center justify-between space-y-2">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Reportes y Análisis</h2>
+            <p className="text-muted-foreground">
+              Consulta estadísticas, transacciones y distribución de acciones del sistema
+            </p>
+          </div>
         </div>
-      </div>
 
       {/* Tabs de navegación */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -131,6 +136,7 @@ export default function AnalistaPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   )
 }
